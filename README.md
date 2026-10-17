@@ -1,3 +1,5 @@
+> **本仓库为风格迁移与五级运限导航版本。** 在原开源排盘引擎基础上加入白紫主题、完整出生表单、本地档案、AI接口适配、双人合盘、研习入口，以及大限／流年／流月／流日／流时联动。运行与配置请先看 [MIGRATION.md](MIGRATION.md)。代码沿用 MIT；新增语料、字体和图标分别保留各自许可，见 [语料来源](tools/reference-corpora/README.md) 和 [资源许可](public/reference/SOURCES.md)。以下为上游项目介绍，原作者署名及链接予以保留。
+
 <div align="center">
 
 # 紫微斗数 · 开源排盘引擎

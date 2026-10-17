@@ -1,0 +1,4 @@
+# Preserve the exact upstream bytes used by manifest SHA-256 checks and licenses.
+tools/reference-corpora/tianji/** -text
+tools/reference-corpora/renji/** -text
+public/reference/LICENSE-*.txt -text

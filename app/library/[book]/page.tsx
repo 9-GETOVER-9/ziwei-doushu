@@ -1,101 +1,26 @@
-/**
- * /library/[book] — 单部古籍目录页
- */
-
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import { ALL_BOOKS, getBookBySlug } from '@/lib/classics';
+import '@/components/ExplorePages.css';
 
-export async function generateStaticParams() {
-  return ALL_BOOKS.map(b => ({ book: b.slug }));
-}
+export async function generateStaticParams() { return ALL_BOOKS.map(book => ({ book: book.slug })); }
 
 export async function generateMetadata({ params }: { params: Promise<{ book: string }> }) {
   const { book: slug } = await params;
   const book = getBookBySlug(slug);
-  if (!book) return {};
-  return {
-    title: `《${book.title}》· ${book.dynasty} · 紫微斗数古籍原典库`,
-    description: book.intro,
-  };
+  return book ? { title: `${book.title} · 古籍导读`, description: `《${book.title}》的项目整理节录与阅读目录，非逐字校勘古籍全文。` } : {};
 }
 
 export default async function BookPage({ params }: { params: Promise<{ book: string }> }) {
   const { book: slug } = await params;
   const book = getBookBySlug(slug);
   if (!book) notFound();
-
-  return (
-    <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
-      <div className="px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(184,146,42,0.15)', background: 'var(--bg-page)' }}>
-        <Link href="/library" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.3em', textDecoration: 'none' }}>
-          ← 古籍库
-        </Link>
-        <div style={{ fontSize: '12px', color: 'var(--tx-3)', letterSpacing: '0.2em' }}>
-          《{book.title}》
-        </div>
-        <Link href="/" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.2em', textDecoration: 'none' }}>
-          首页 →
-        </Link>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        {/* 书名信息 */}
-        <div className="text-center mb-12">
-          <div style={{ fontSize: '11px', color: 'var(--tx-3)', letterSpacing: '0.3em', marginBottom: '8px' }}>
-            {book.dynasty} · {book.author}
-          </div>
-          <h1 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, color: 'var(--tx-0)', letterSpacing: '0.15em', marginBottom: '14px' }}>
-            《{book.title}》
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--tx-2)', lineHeight: 1.8, maxWidth: '500px', margin: '0 auto' }}>
-            {book.intro}
-          </p>
-        </div>
-
-        {/* 章节目录 */}
-        <div style={{ background: 'var(--bg-card)', borderRadius: '14px', border: '1px solid rgba(184,146,42,0.2)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(184,146,42,0.15)', fontSize: '11px', color: 'var(--tx-3)', letterSpacing: '0.3em' }}>
-            CHAPTERS · 章节目录
-          </div>
-          {book.chapters.map((chapter, i) => (
-            <Link
-              key={i}
-              href={`/library/${book.slug}/${i}`}
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '14px',
-                padding: '14px 20px',
-                borderBottom: i === book.chapters.length - 1 ? 'none' : '1px dashed rgba(184,146,42,0.15)',
-                textDecoration: 'none',
-                color: 'inherit',
-                transition: 'background 0.15s',
-              }}
-              className="hover:bg-amber-50"
-            >
-              <div style={{ fontSize: '12px', color: 'var(--ac)', fontWeight: 600, minWidth: '40px', letterSpacing: '0.1em' }}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '15px', color: 'var(--tx-0)', fontWeight: 500, letterSpacing: '0.08em', marginBottom: '2px' }}>
-                  {chapter.title}
-                </div>
-                {chapter.subtitle && (
-                  <div style={{ fontSize: '11px', color: 'var(--tx-3)' }}>
-                    {chapter.subtitle}
-                  </div>
-                )}
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--tx-3)', letterSpacing: '0.1em' }}>
-                {chapter.paragraphs.length} 段
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--ac)' }}>→</div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="explore-page"><SiteHeader /><main id="main-content" className="explore-shell explore-reader">
+    <nav className="explore-breadcrumb" aria-label="面包屑"><Link href="/library">古籍导读</Link><span>/</span><span>{book.title}</span></nav>
+    <header className="explore-intro"><span className="explore-eyebrow">{book.dynasty} · {book.author}</span><h1 className="studio-heading">{book.title} · 导读</h1><p>以《{book.title}》的主题为线索，阅读项目整理的节录与释义。</p><div className="explore-course-meta"><span>{book.chapters.length} 个章节</span><span>{book.chapters.reduce((sum, chapter) => sum + chapter.paragraphs.length, 0)} 段已收录节录</span></div></header>
+    <div className="explore-lecture-list">{book.chapters.map((chapter, i) => <Link href={`/library/${book.slug}/${i}`} className="explore-lecture" key={i}><span className="explore-index">{String(i + 1).padStart(2, '0')}</span><div><h2 className="explore-chapter-title">{chapter.title}</h2>{chapter.subtitle && <p>{chapter.subtitle}</p>}</div><span>{chapter.paragraphs.length} 段 · 阅读 ↗</span></Link>)}</div>
+    <p className="explore-note">以上为项目当前整理目录，按书籍主题归类。可通过全文搜索定位到具体段落。</p><Link href="/library" className="explore-text-link">← 返回全部古籍</Link>
+  </main><SiteFooter /></div>;
 }
