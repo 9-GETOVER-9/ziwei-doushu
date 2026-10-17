@@ -6,11 +6,13 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import BirthForm from '@/components/BirthForm';
 import ChartBoard from '@/components/ChartBoard';
-import { TIME_VIEW_NAMES } from '@/components/TimeNav';
+import { TIME_VIEW_NAMES, type TimeView } from '@/components/TimeNav';
+import LifeKlinePanel from '@/components/LifeKlinePanel';
 import InsightPanel from '@/components/InsightPanel';
 import OrbitalField from '@/components/OrbitalField';
 import { generateChart } from '@/lib/ziwei/algorithm';
 import { getCurrentNominalAge } from '@/lib/ziwei/current-time';
+import { getCurrentFlowSelection, type FlowSelection } from '@/lib/ziwei/time-flow';
 import { BRANCHES, STAR_DESCRIPTIONS, STEMS } from '@/lib/ziwei/constants';
 import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns';
 import { normalizeBirthInput, type BirthFormState } from '@/lib/input-normalize';
@@ -52,6 +54,8 @@ export default function ChartPage() {
   const [error, setError] = useState('');
   const [sihuaNote, setSihuaNote] = useState('');
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [workspaceView, setWorkspaceView] = useState<'chart' | 'life'>('chart');
+  const [flowState, setFlowState] = useState<{ selection: FlowSelection; view: TimeView }>(() => ({ selection: getCurrentFlowSelection(), view: 'mingpan' }));
   const { archives, save, remove, storageError } = useChartArchives();
   const resultsRef = useRef<HTMLDivElement>(null);
   const patterns = useMemo(() => chart ? detectPatterns(chart) : [], [chart]);
@@ -72,6 +76,8 @@ export default function ChartPage() {
     setAiOpened(false);
     setSihuaNote('');
     setCurrentTime(new Date());
+    setWorkspaceView('chart');
+    setFlowState({ selection: getCurrentFlowSelection(), view: 'mingpan' });
     setStatus('');
     setError('');
   };
@@ -176,12 +182,20 @@ export default function ChartPage() {
               <p className={`birth-notice${form?.unknownTime ? ' warning' : ''}`}>{normalization.notes.join('；')}</p>
             </div>}
             {status && <p role="status" className="chart-status">{status}</p>}
-            <div className="chart-result-layout">
+            <div className="chart-workspace-modes" role="group" aria-label="命盘视图">
+              <button aria-pressed={workspaceView === 'chart'} onClick={() => setWorkspaceView('chart')}>紫微命盘</button>
+              <button aria-pressed={workspaceView === 'life'} onClick={() => setWorkspaceView('life')}>人生 K 线 <span aria-hidden="true">↗</span></button>
+            </div>
+            {workspaceView === 'life' ? <LifeKlinePanel key={JSON.stringify(chart.birthInfo)} chart={chart} initialYear={flowState.selection.year} onOpenFlow={selection => {
+              setFlowState({ selection, view: 'liunian' }); setWorkspaceView('chart'); setSihuaNote(''); setCurrentTime(new Date());
+              requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ block: 'start' }));
+            }} /> : <div className="chart-result-layout">
               <section className="studio-panel chart-board-panel">
                 <div className="chart-panel-title"><h3>紫微命盘</h3><span className="chart-section-no">十二宫 · 三方四正</span></div>
                 <div className="chart-board-scroll">
                   <ChartBoard key={JSON.stringify(chart.birthInfo)} chart={chart} onPalaceSelect={selectPalace}
                     selectedBranch={selectedPalace?.branch ?? null}
+                    timeState={flowState} onFlowChange={(selection, view) => setFlowState({ selection, view })}
                     onTimeChange={() => { setSihuaNote(''); setCurrentTime(new Date()); }}
                     onStarSelect={(star, palace) => { selectPalace(palace); setSelectedStar(star); }}
                     onSiHuaClick={(starName, siHua, view, context) => {
@@ -262,7 +276,7 @@ export default function ChartPage() {
                   {aiOpened && <div hidden={detailTab !== 'ai'}>{form?.unknownTime ? <p className="birth-notice warning">请先补全出生时辰，再开始针对命盘的 AI 解读。</p> : <InsightPanel key={JSON.stringify(chart.birthInfo)} chart={chart} selectedPalace={selectedPalace} />}</div>}
                 </div>
               </aside>
-            </div>
+            </div>}
           </div>
         )}
 

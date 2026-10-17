@@ -1,6 +1,6 @@
 import { readSseData } from './sse';
 
-export async function streamAi(path: '/api/interpret' | '/api/heming', body: unknown, signal: AbortSignal, onText: (text: string) => void) {
+export async function streamAi(path: '/api/interpret' | '/api/heming' | '/api/life-kline/interpret', body: unknown, signal: AbortSignal, onText: (text: string) => void) {
   const response = await fetch(path, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal,
   });

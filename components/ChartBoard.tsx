@@ -14,6 +14,8 @@ interface ChartBoardProps {
   onPalaceSelect?: (palace: Palace | null) => void;
   onSiHuaClick?: (starName: string, siHua: string, view: TimeView, context: string) => void;
   onTimeChange?: () => void;
+  timeState?: { selection: FlowSelection; view: TimeView };
+  onFlowChange?: (selection: FlowSelection, view: TimeView) => void;
 }
 
 const BRANCH_GRID_POS: Record<number, [number, number]> = {
@@ -55,9 +57,14 @@ function getSanFangSiZheng(branch: number): [number, number, number, number] {
 
 const ANIMATION_ORDER = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
 
-export default function ChartBoard({ chart, selectedBranch, onStarSelect, onPalaceSelect, onSiHuaClick, onTimeChange }: ChartBoardProps) {
-  const [timeView, setTimeView] = useState<TimeView>('mingpan');
-  const [timeSelection, setTimeSelection] = useState<FlowSelection>(getCurrentFlowSelection);
+export default function ChartBoard({ chart, selectedBranch, onStarSelect, onPalaceSelect, onSiHuaClick, onTimeChange, timeState, onFlowChange }: ChartBoardProps) {
+  const [localTime, setLocalTime] = useState<{ selection: FlowSelection; view: TimeView }>(() => ({ selection: getCurrentFlowSelection(), view: 'mingpan' }));
+  const { selection: timeSelection, view: timeView } = timeState ?? localTime;
+  const changeTime = (selection: FlowSelection, view: TimeView) => {
+    if (!timeState) setLocalTime({ selection, view });
+    onFlowChange?.(selection, view);
+    onTimeChange?.();
+  };
   const flow = useMemo(() => chart.birthInfo.unknownTime ? null : getTimeFlow(chart, timeSelection), [chart, timeSelection]);
   const birthLunar = useMemo(() => flowSelectionFromSolar(chart.birthInfo), [chart]);
 
@@ -85,9 +92,9 @@ export default function ChartBoard({ chart, selectedBranch, onStarSelect, onPala
         chart={chart}
         flow={flow}
         view={timeView}
-        onViewChange={view => { setTimeView(view); onTimeChange?.(); }}
-        onChange={(selection, view) => { setTimeSelection(selection); setTimeView(view); onTimeChange?.(); }}
-        onToday={() => { setTimeSelection(getCurrentFlowSelection()); setTimeView('liunian'); onTimeChange?.(); }}
+        onViewChange={view => changeTime(timeSelection, view)}
+        onChange={changeTime}
+        onToday={() => changeTime(getCurrentFlowSelection(), 'liunian')}
       /> : <p className="birth-notice warning mb-4">补全出生时辰后，即可查看大限、流年、流月、流日与流时。</p>}
 
       {/* 命盘标题 */}
