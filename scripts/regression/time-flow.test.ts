@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { astro } from 'iztro';
-import { generateChart } from '../../lib/ziwei/algorithm';
+import { generateChart, resolveEffectiveLunarDate } from '../../lib/ziwei/algorithm';
 import { STEMS } from '../../lib/ziwei/constants';
-import { getFlowMonths, getFlowDays, flowSelectionFromSolar, flowSelectionToSolar, getFlowDecades, clampFlowSelection, getTimeFlow } from '../../lib/ziwei/time-flow';
+import { getFlowMonths, getFlowDays, flowSelectionFromSolar, flowSelectionToSolar, getFlowDecades, clampFlowSelection, getTimeFlow, getCurrentFlowSelection } from '../../lib/ziwei/time-flow';
 
 // Calendar facts independently identify leap-month and month-length boundaries.
 assert.equal(getFlowMonths(2023).length, 13);
@@ -24,8 +24,9 @@ const birth = { year: 1996, month: 6, day: 18, hour: 5, gender: 'female' as cons
 const chart = generateChart(birth);
 const natalSnapshot = JSON.stringify(chart);
 const oracle = astro.bySolar('1996-6-18', 5, '女', true, 'zh-CN');
-// Compare every scope against the independently installed public engine, not a
-// copy of our formula. Cover New Year, leap halves, month ends and every hour.
+// These are consistency checks against the same iztro engine used by the natal
+// chart, not independent evidence of calendar accuracy or agreement across schools.
+// Cover New Year, leap halves, month ends and every hour.
 astro.config({ yearDivide: 'normal', horoscopeDivide: 'normal', ageDivide: 'normal' });
 for (const solar of [
   { year: 2024, month: 2, day: 9 }, { year: 2024, month: 2, day: 10 },
@@ -96,6 +97,21 @@ for (let age = 1; age <= 5; age++) {
 const leapBirth = { year: 2023, month: 4, day: 6, hour: 5, gender: 'female' as const };
 const natalSplit = generateChart(leapBirth);
 const natalPrevious = generateChart(leapBirth, { leapMonth: 'prev-month' });
+// Split changes the month used for month-based stars, while day-based stars
+// still use the real leap-month day. Do not truncate day 30 to the next small
+// month's 29 days in metadata when the natal bySolar calculation keeps day 30.
+const leapMonthEndBirth = { year: 2017, month: 8, day: 21, hour: 5, gender: 'female' as const };
+const leapMonthEndChart = generateChart(leapMonthEndBirth);
+assert.deepEqual(resolveEffectiveLunarDate(2017, 8, 21, 'split'), {
+  lunarYear: 2017, lunarMonth: 7, lunarDay: 30, isLeapMonth: false,
+  rawLunarMonth: -6, rawLunarDay: 30,
+});
+assert.equal(leapMonthEndChart.lunarInfo.lunarMonth, 7);
+assert.equal(leapMonthEndChart.lunarInfo.lunarDay, 30);
+assert.deepEqual(flowSelectionFromSolar(leapMonthEndBirth, 5), { year: 2017, month: -6, day: 30, hour: 5 });
+assert.equal(leapMonthEndChart.ziweiPos, 11, 'metadata correction must preserve the existing natal Ziwei position');
+assert.equal(generateChart(leapMonthEndBirth, { leapMonth: 'next-month' }).lunarInfo.lunarDay, 29, 'non-split policies still clamp their substituted calendar date');
+assert.equal(resolveEffectiveLunarDate(1906, 6, 21, 'prev-month').lunarDay, 29, 'previous-month policy still clamps to its real small month');
 const futureSelection = { year: 2026, month: 9, day: 8, hour: 4 };
 assert.notEqual(getTimeFlow(natalSplit, futureSelection).levels.monthly.palaceBranch, getTimeFlow(natalPrevious, futureSelection).levels.monthly.palaceBranch, 'retain the existing natal leap policy');
 const farFuture = getTimeFlow(futureChart, { year: 2150, month: 1, day: 1, hour: 0 });
@@ -136,4 +152,37 @@ for (const fixture of [
     }
   }
 }
-console.log('PASS flow calendar boundaries, five scopes against iztro, true lunar age, childhood, real overlays, future-birth clamp and immutable natal chart');
+// The summary and "today" navigation must resolve the same China civil time,
+// including late zi crossing Lunar New Year and a decade boundary.
+function withCurrentTime<T>(iso: string, run: () => T): T {
+  const OriginalDate = globalThis.Date;
+  const fixedTime = new OriginalDate(iso).getTime();
+  globalThis.Date = new Proxy(OriginalDate, {
+    construct(target, args, newTarget) { return Reflect.construct(target, args.length ? args : [fixedTime], newTarget); },
+    apply() { return new OriginalDate(fixedTime).toString(); },
+    get(target, key, receiver) { return key === 'now' ? () => fixedTime : Reflect.get(target, key, receiver); },
+  });
+  try { return run(); } finally { globalThis.Date = OriginalDate; }
+}
+for (const fixture of [
+  { iso: '2026-02-16T14:59:00Z', solar: { year: 2026, month: 2, day: 16 }, age: 33, hour: 11, decade: 2 },
+  { iso: '2026-02-16T15:00:00Z', solar: { year: 2026, month: 2, day: 17 }, age: 34, hour: 0, decade: 3 },
+  { iso: '2026-02-16T16:00:00Z', solar: { year: 2026, month: 2, day: 17 }, age: 34, hour: 0, decade: 3 },
+]) {
+  withCurrentTime(fixture.iso, () => {
+    const target = getCurrentFlowSelection();
+    assert.deepEqual(flowSelectionToSolar(target), fixture.solar, fixture.iso);
+    assert.equal(target.hour, fixture.hour, fixture.iso);
+    const boundaryChart = generateChart({ year: 1993, month: 6, day: 18, hour: 5, gender: 'female' });
+    const boundaryFlow = getTimeFlow(boundaryChart, target);
+    assert.equal(boundaryChart.currentAge, fixture.age, `summary age ${fixture.iso}`);
+    assert.equal(boundaryFlow.nominalAge, fixture.age, `navigation age ${fixture.iso}`);
+    assert.equal(boundaryChart.currentDaXianIndex, fixture.decade, `summary decade ${fixture.iso}`);
+    assert.equal(boundaryFlow.decadalIndex, fixture.decade, `navigation decade ${fixture.iso}`);
+    const earlyBirth = generateChart({ year: 2000, month: 1, day: 1, hour: 0, gender: 'male' });
+    const earlyFlow = getTimeFlow(earlyBirth, target);
+    assert.equal(earlyBirth.currentAge, target.year - 1999 + 1, 'birth before Spring Festival uses its real lunar birth year');
+    assert.equal(earlyBirth.currentAge, earlyFlow.nominalAge);
+  });
+}
+console.log('PASS flow calendar boundaries, same-engine consistency, China late-zi current age/decade, childhood, real overlays, future-birth clamp and immutable natal chart');

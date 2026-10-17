@@ -10,6 +10,7 @@ import { TIME_VIEW_NAMES } from '@/components/TimeNav';
 import InsightPanel from '@/components/InsightPanel';
 import OrbitalField from '@/components/OrbitalField';
 import { generateChart } from '@/lib/ziwei/algorithm';
+import { getCurrentNominalAge } from '@/lib/ziwei/current-time';
 import { BRANCHES, STAR_DESCRIPTIONS, STEMS } from '@/lib/ziwei/constants';
 import { detectPatterns, getMingGongSummary } from '@/lib/ziwei/patterns';
 import { normalizeBirthInput, type BirthFormState } from '@/lib/input-normalize';
@@ -35,7 +36,7 @@ const PALACE_TOPICS: Record<string, string> = {
 type DetailTab = 'summary' | 'palace' | 'patterns' | 'ai';
 
 function formDescription(form: BirthFormState) {
-  return `${form.calendar === 'lunar' ? '农历' : '公历'} ${form.year}.${form.month.padStart(2, '0')}.${form.day.padStart(2, '0')} · ${form.unknownTime ? '时辰未知' : `${form.clockHour.padStart(2, '0')}:${form.clockMinute.padStart(2, '0')}`} · ${form.gender === 'female' ? '女命' : '男命'}`;
+  return `${form.calendar === 'lunar' ? '农历' : '公历'} ${form.year}.${form.calendar === 'lunar' && form.isLeapMonth ? '闰' : ''}${form.month.padStart(2, '0')}.${form.day.padStart(2, '0')} · ${form.unknownTime ? '时辰未知' : `${form.clockHour.padStart(2, '0')}:${form.clockMinute.padStart(2, '0')}`} · ${form.gender === 'female' ? '女命' : '男命'}`;
 }
 
 export default function ChartPage() {
@@ -50,6 +51,7 @@ export default function ChartPage() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [sihuaNote, setSihuaNote] = useState('');
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const { archives, save, remove, storageError } = useChartArchives();
   const resultsRef = useRef<HTMLDivElement>(null);
   const patterns = useMemo(() => chart ? detectPatterns(chart) : [], [chart]);
@@ -69,6 +71,7 @@ export default function ChartPage() {
     setDetailTab('summary');
     setAiOpened(false);
     setSihuaNote('');
+    setCurrentTime(new Date());
     setStatus('');
     setError('');
   };
@@ -90,9 +93,9 @@ export default function ChartPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectPalace = (palace: Palace) => {
+  const selectPalace = (palace: Palace | null) => {
     setSelectedPalace(palace);
-    setSelectedStar(palace.stars.find(star => star.type === 'major') ?? palace.stars[0] ?? null);
+    setSelectedStar(palace?.stars.find(star => star.type === 'major') ?? palace?.stars[0] ?? null);
     setDetailTab('palace');
     setSihuaNote('');
   };
@@ -113,7 +116,8 @@ export default function ChartPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus('命盘数据已导出，包含原始出生信息与完整星曜数据。');
   };
-  const currentDx = chart?.daXians[chart.currentDaXianIndex];
+  const currentAge = chart ? getCurrentNominalAge(chart.birthInfo, currentTime) : 0;
+  const currentDx = chart?.daXians.find(period => currentAge >= period.startAge && currentAge <= period.endAge);
   const selectedStarInfo = selectedStar ? STAR_DESCRIPTIONS[selectedStar.name] : null;
   const palaceTopic = selectedPalace ? PALACE_TOPICS[selectedPalace.name] ?? PALACE_TOPICS[selectedPalace.name.replace(/宫$/, '')] : '';
   const sihuas = chart?.palaces.flatMap(palace => palace.stars.filter(star => star.siHua).map(star => ({ ...star, palaceName: palace.name }))) ?? [];
@@ -177,6 +181,8 @@ export default function ChartPage() {
                 <div className="chart-panel-title"><h3>紫微命盘</h3><span className="chart-section-no">十二宫 · 三方四正</span></div>
                 <div className="chart-board-scroll">
                   <ChartBoard key={JSON.stringify(chart.birthInfo)} chart={chart} onPalaceSelect={selectPalace}
+                    selectedBranch={selectedPalace?.branch ?? null}
+                    onTimeChange={() => { setSihuaNote(''); setCurrentTime(new Date()); }}
                     onStarSelect={(star, palace) => { selectPalace(palace); setSelectedStar(star); }}
                     onSiHuaClick={(starName, siHua, view, context) => {
                       const palace = chart.palaces.find(item => item.stars.some(star => star.name === starName));
@@ -213,14 +219,14 @@ export default function ChartPage() {
                       <span className="chart-sihua-badge" data-kind={star.siHua}>化{star.siHua}</span><span>{star.name}</span><small>{star.palaceName}</small>
                     </li>)}</ul>
                     <h4 className="chart-subtitle">当前大限</h4>
-                    <p>{currentDx ? `${currentDx.startAge}–${currentDx.endAge} 岁 · ${currentDx.palaceName}，当前虚岁 ${chart.currentAge}。` : '当前处于起限前阶段，尚未进入首个十年大限。'}</p>
+                    <p>{currentDx ? `${currentDx.startAge}–${currentDx.endAge} 岁 · ${currentDx.palaceName}，当前虚岁 ${currentAge}。` : currentAge < 1 ? '当前时间早于出生时间，尚未出生。' : currentAge < chart.daXians[0]?.startAge ? '当前处于起限前阶段，尚未进入首个十年大限。' : `当前虚岁 ${currentAge}，超出已生成的大限范围。`}</p>
                     <p className="chart-method">摘要来自当前命盘的星曜数据与公开规则。进一步阅读时，请连同宫位强弱、四化及格局条件一起查看。</p>
                   </>}
 
                   {detailTab === 'palace' && selectedPalace && <>
                     <div className="chart-detail-eyebrow">PALACE · {STEMS[selectedPalace.stem]}{BRANCHES[selectedPalace.branch]}</div>
                     <h3>{selectedPalace.name}</h3><p>{palaceTopic}</p>
-                    <div className="chart-star-list">{selectedPalace.stars.map((star, index) => <button key={`${star.name}-${index}`} className={selectedStar?.name === star.name ? 'is-active' : ''} onClick={() => setSelectedStar(star)}>
+                    <div className="chart-star-list">{selectedPalace.stars.map((star, index) => <button key={`${star.name}-${index}`} className={selectedStar?.name === star.name ? 'is-active' : ''} onClick={() => { setSelectedStar(star); setSihuaNote(''); }}>
                       {star.name}<small>{star.brightnessRaw || ''}{star.siHua ? ` · 化${star.siHua}` : ''}</small>
                     </button>)}</div>
                     {selectedPalace.isEmpty && <p className="birth-notice">本宫无主星，借对宫{selectedPalace.borrowedFromName}的{selectedPalace.borrowedStars?.join('、') || '主星'}共同观察。</p>}
@@ -237,6 +243,8 @@ export default function ChartPage() {
                     })}</div>
                     <p className="chart-method">此面板展示本命宫位资料。宫位的传统含义不能由单颗星单独定论。</p>
                   </>}
+
+                  {detailTab === 'palace' && !selectedPalace && <p>点选任意宫位，查看星曜与三方四正。</p>}
 
                   {detailTab === 'patterns' && <>
                     <div className="chart-detail-eyebrow">PATTERNS & EVIDENCE</div>

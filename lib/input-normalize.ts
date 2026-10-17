@@ -55,12 +55,22 @@ export function normalizeBirthInput(form: BirthFormState) {
   const correctSolar = form.useTrueSolarTime !== false && Boolean(form.province);
   if (correctSolar && (!Number.isFinite(form.longitude) || form.longitude < -180 || form.longitude > 180)) throw new Error('出生地经度无效，请重新选择城市');
   const subtractDST = Boolean(form.dstCorrection) && isChinaDST(solarDate.year, solarDate.month, solarDate.day);
+  const standardMinutes = clockHour * 60 + clockMinute - (subtractDST ? 60 : 0);
+  const standardDate = shiftGregorianDate(solarDate, Math.floor(standardMinutes / 1440));
+  const standardMinuteOfDay = ((standardMinutes % 1440) + 1440) % 1440;
+  const standardTime: NonNullable<BirthInfo['standardTime']> = {
+    ...standardDate,
+    clockHour: Math.floor(standardMinuteOfDay / 60),
+    clockMinute: standardMinuteOfDay % 60,
+    utcOffsetMinutes: 480,
+    dstCorrectionMinutes: subtractDST ? 60 : 0,
+  };
   const solarTime = calculateTrueSolarTime({ ...solarDate, clockHour: clockHour - (subtractDST ? 1 : 0), clockMinute, longitude: correctSolar ? form.longitude : undefined });
   const dayOffset = resolveZiweiDayOffset(solarTime, 'next-day');
   const chartDate = shiftGregorianDate(solarDate, dayOffset);
   if (subtractDST) notes.push('已按所选夏令时读数减去 1 小时');
   if (correctSolar) notes.push(`真太阳时 ${formatTrueSolarClock(solarTime)}，含经度修正与均时差`);
   if (dayOffset) notes.push(`依真太阳时跨日及晚子时规则，排盘日为 ${chartDate.year} 年 ${chartDate.month} 月 ${chartDate.day} 日`);
-  const birthInfo: BirthInfo = { ...chartDate, ...identity, hour: solarTime.branch, longitude: correctSolar ? form.longitude : undefined, origInput: { ...solarDate, clockHour, clockMinute } };
+  const birthInfo: BirthInfo = { ...chartDate, ...identity, hour: solarTime.branch, longitude: correctSolar ? form.longitude : undefined, standardTime, origInput: { ...solarDate, clockHour, clockMinute } };
   return { birthInfo, solarDate, chartDate, solarTime, notes };
 }

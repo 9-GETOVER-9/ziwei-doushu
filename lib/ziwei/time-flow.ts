@@ -12,6 +12,7 @@
 import { Lunar, LunarMonth, Solar } from 'lunar-javascript';
 import { BRANCHES, SI_HUA_TABLE, STEMS } from './constants';
 import type { SiHua, ZiweiChart } from './types';
+import { resolveCurrentZiweiTime } from './current-time';
 
 /** year/month/day are lunar; a negative month denotes the leap month. */
 export interface FlowSelection { year: number; month: number; day: number; hour: number }
@@ -76,6 +77,12 @@ export function flowSelectionFromSolar(date: FlowSolarDate, hour = 0): FlowSelec
   const solar = Solar.fromYmd(date.year, date.month, date.day);
   const lunar = solar.getLunar();
   return { year: lunar.getYear(), month: lunar.getMonth(), day: lunar.getDay(), hour };
+}
+
+/** Shared with the natal summary: Beijing time, late zi resolved to next day. */
+export function getCurrentFlowSelection(now: Date = new Date()): FlowSelection {
+  const { solarDate, hour } = resolveCurrentZiweiTime(now);
+  return flowSelectionFromSolar(solarDate, hour);
 }
 
 export function flowSelectionToSolar(selection: FlowSelection): FlowSolarDate {

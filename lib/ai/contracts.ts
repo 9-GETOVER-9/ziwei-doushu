@@ -1,4 +1,5 @@
 import { generateChart } from '../ziwei/algorithm';
+import { isValidGregorianDate } from '../ziwei/true-solar-time';
 import type { BirthInfo, ZiweiChart } from '../ziwei/types';
 
 export interface AiMessage { role: 'user' | 'assistant'; content: string }
@@ -83,6 +84,23 @@ export function rebuildChart(value: unknown): ZiweiChart {
     year: integer(birth.year, 1899, 2100), month: integer(birth.month, 1, 12),
     day: integer(birth.day, 1, 31), hour: integer(birth.hour, 0, 11), gender: birth.gender,
   };
+  if (birth.standardTime !== undefined) {
+    const standard = object(birth.standardTime);
+    const year = integer(standard.year, info.year - 1, info.year + 1);
+    const month = integer(standard.month, 1, 12);
+    const day = integer(standard.day, 1, 31);
+    const clockHour = integer(standard.clockHour, 0, 23);
+    const clockMinute = integer(standard.clockMinute, 0, 59);
+    integer(standard.utcOffsetMinutes, 480, 480);
+    const dstCorrectionMinutes = integer(standard.dstCorrectionMinutes, 0, 60);
+    // The supported longitude correction and late-zi rollover can change the
+    // standard clock date by at most one civil day, including a year boundary.
+    const dateDifference = Math.abs(Date.UTC(year, month - 1, day) - Date.UTC(info.year, info.month - 1, info.day));
+    if (!isValidGregorianDate(year, month, day) || dateDifference > 86_400_000 || (dstCorrectionMinutes !== 0 && dstCorrectionMinutes !== 60)) {
+      throw new AiError(400, 'INVALID_BIRTH', '出生标准时刻与排盘日期不一致，请重新排盘后重试。');
+    }
+    info.standardTime = { year, month, day, clockHour, clockMinute, utcOffsetMinutes: 480, dstCorrectionMinutes };
+  }
   // Inputs already contain the form's solar-time / late-zi corrections.
   // Names and locations are unnecessary and are not sent upstream.
   try { return generateChart(info); }

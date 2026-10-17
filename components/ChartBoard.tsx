@@ -5,13 +5,15 @@ import type { ZiweiChart, Palace, Star } from '@/lib/ziwei/types';
 import { BRANCHES, STEMS } from '@/lib/ziwei/constants';
 import PalaceCell from './PalaceCell';
 import TimeNav, { type TimeView, TIME_LEVEL_KEYS, TIME_VIEW_MARKS, TIME_VIEW_NAMES } from './TimeNav';
-import { flowSelectionFromSolar, getTimeFlow, type FlowSelection } from '@/lib/ziwei/time-flow';
+import { flowSelectionFromSolar, getCurrentFlowSelection, getTimeFlow, type FlowSelection } from '@/lib/ziwei/time-flow';
 
 interface ChartBoardProps {
   chart: ZiweiChart;
+  selectedBranch: number | null;
   onStarSelect?: (star: Star, palace: Palace) => void;
-  onPalaceSelect?: (palace: Palace) => void;
+  onPalaceSelect?: (palace: Palace | null) => void;
   onSiHuaClick?: (starName: string, siHua: string, view: TimeView, context: string) => void;
+  onTimeChange?: () => void;
 }
 
 const BRANCH_GRID_POS: Record<number, [number, number]> = {
@@ -53,18 +55,11 @@ function getSanFangSiZheng(branch: number): [number, number, number, number] {
 
 const ANIMATION_ORDER = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
 
-function todaySelection(): FlowSelection {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date());
-  const part = (name: string) => Number(parts.find(item => item.type === name)?.value);
-  const date = new Date(Date.UTC(part('year'), part('month') - 1, part('day') + (part('hour') === 23 ? 1 : 0)));
-  return flowSelectionFromSolar({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() }, Math.floor((part('hour') + 1) / 2) % 12);
-}
-
-export default function ChartBoard({ chart, onStarSelect, onPalaceSelect, onSiHuaClick }: ChartBoardProps) {
-  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+export default function ChartBoard({ chart, selectedBranch, onStarSelect, onPalaceSelect, onSiHuaClick, onTimeChange }: ChartBoardProps) {
   const [timeView, setTimeView] = useState<TimeView>('mingpan');
-  const [timeSelection, setTimeSelection] = useState<FlowSelection>(todaySelection);
+  const [timeSelection, setTimeSelection] = useState<FlowSelection>(getCurrentFlowSelection);
   const flow = useMemo(() => chart.birthInfo.unknownTime ? null : getTimeFlow(chart, timeSelection), [chart, timeSelection]);
+  const birthLunar = useMemo(() => flowSelectionFromSolar(chart.birthInfo), [chart]);
 
   const palaceMap: Record<number, Palace> = {};
   chart.palaces.forEach(p => { palaceMap[p.branch] = p; });
@@ -76,12 +71,7 @@ export default function ChartBoard({ chart, onStarSelect, onPalaceSelect, onSiHu
   const flowContext = flow ? `${flow.lunarDate} ${BRANCHES[flow.selection.hour]}时（公历${flow.solarDate.year}-${flow.solarDate.month}-${flow.solarDate.day}）` : '';
 
   const handlePalaceClick = (branch: number) => {
-    const isDeselecting = selectedBranch === branch;
-    setSelectedBranch(prev => prev === branch ? null : branch);
-    if (!isDeselecting) {
-      const palace = palaceMap[branch];
-      if (palace) onPalaceSelect?.(palace);
-    }
+    onPalaceSelect?.(selectedBranch === branch ? null : palaceMap[branch]);
   };
 
   // 三方四正
@@ -95,9 +85,9 @@ export default function ChartBoard({ chart, onStarSelect, onPalaceSelect, onSiHu
         chart={chart}
         flow={flow}
         view={timeView}
-        onViewChange={setTimeView}
-        onChange={(selection, view) => { setTimeSelection(selection); setTimeView(view); }}
-        onToday={() => { setTimeSelection(todaySelection()); setTimeView('liunian'); }}
+        onViewChange={view => { setTimeView(view); onTimeChange?.(); }}
+        onChange={(selection, view) => { setTimeSelection(selection); setTimeView(view); onTimeChange?.(); }}
+        onToday={() => { setTimeSelection(getCurrentFlowSelection()); setTimeView('liunian'); onTimeChange?.(); }}
       /> : <p className="birth-notice warning mb-4">补全出生时辰后，即可查看大限、流年、流月、流日与流时。</p>}
 
       {/* 命盘标题 */}
@@ -182,8 +172,9 @@ export default function ChartBoard({ chart, onStarSelect, onPalaceSelect, onSiHu
           })()}
 
           <div className="text-[9px] text-center leading-relaxed font-mono" style={{ color: 'var(--tx-2)' }}>
-            {chart.lunarInfo.lunarYear}·{chart.lunarInfo.isLeapMonth ? '闰' : ''}
-            {chart.lunarInfo.lunarMonth}·{chart.lunarInfo.lunarDay}
+            <div>出生排盘日 · 农历</div>
+            <div>{birthLunar.year}·{birthLunar.month < 0 ? '闰' : ''}{Math.abs(birthLunar.month)}·{birthLunar.day}</div>
+            {birthLunar.month < 0 && <div>安星按{chart.lunarInfo.isLeapMonth ? '闰' : ''}{Math.abs(chart.lunarInfo.lunarMonth)}月{chart.lunarInfo.lunarDay}日</div>}
           </div>
         </motion.div>
 

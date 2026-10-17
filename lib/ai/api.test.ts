@@ -55,12 +55,42 @@ async function main() {
   assert.equal(rebuilt.palaces.length, 12);
   assert.ok(!JSON.stringify(rebuilt).includes('private-name'));
   assert.ok(!JSON.stringify(rebuilt).includes('injected-star'));
+  const minuteForm: BirthFormState = { name: '', year: '2004', month: '2', day: '4', clockHour: '19', clockMinute: '30', unknownTime: false, province: '', city: '', longitude: 120, gender: 'female', useTrueSolarTime: false };
+  const minuteChart = generateChart(normalizeBirthInput(minuteForm).birthInfo);
+  const minuteRebuilt = rebuildChart(minuteChart);
+  assert.deepEqual(minuteRebuilt.lunarInfo.fourPillars?.slice(0, 2), ['癸未', '乙丑'], 'AI重建必须保留立春前19:30，不能回退到戌时中点20:00');
+  assert.deepEqual(minuteRebuilt.lunarInfo, minuteChart.lunarInfo);
+  assert.deepEqual(minuteRebuilt.birthInfo.standardTime, minuteChart.birthInfo.standardTime);
+  assert.equal(rebuilt.lunarInfo.fourPillarsTimeSource, 'branch-midpoint', '旧BirthInfo仍兼容中点估算');
+  const standardTime = minuteChart.birthInfo.standardTime!;
+  const invalidTimes: unknown[] = [null, [], '19:30',
+    ...[{ year: 2004.5 }, { month: 2.5 }, { month: 13 }, { day: 30 }, { day: 0 },
+      { clockHour: 24 }, { clockHour: 19.5 }, { clockMinute: 60 }, { clockMinute: '30' },
+      { utcOffsetMinutes: 0 }, { utcOffsetMinutes: 480.5 }, { dstCorrectionMinutes: 1 },
+      { year: 2006 }, { day: 2 }].map(patch => ({ ...standardTime, ...patch })),
+  ];
+  for (const invalid of invalidTimes) {
+    assert.throws(() => rebuildChart({ birthInfo: { ...minuteChart.birthInfo, standardTime: invalid } }), (error: unknown) => error instanceof AiError && error.status === 400);
+  }
+  const stripped = rebuildChart({ birthInfo: { ...minuteChart.birthInfo, name: 'private-name', province: 'private-location', standardTime: { ...standardTime, name: 'nested-private-name', stars: ['injected-star'] } }, palaces: [{ name: 'injected-star' }] });
+  assert.deepEqual(stripped.birthInfo.standardTime, standardTime);
+  assert.ok(!JSON.stringify(stripped).includes('private-'));
+  assert.ok(!JSON.stringify(stripped).includes('injected-star'));
+  const invalidTimeResponse = await interpret(request({ chart: { birthInfo: { ...minuteChart.birthInfo, standardTime: { ...standardTime, day: 2 } } }, messages }));
+  assert.equal(invalidTimeResponse.status, 400);
+  const dstChart = generateChart(normalizeBirthInput({ ...minuteForm, year: '1987', month: '7', day: '8', clockHour: '0', clockMinute: '20', dstCorrection: true }).birthInfo);
+  const dstRebuilt = rebuildChart(dstChart);
+  assert.deepEqual(dstRebuilt.lunarInfo, dstChart.lunarInfo);
+  assert.equal(dstRebuilt.birthInfo.standardTime?.dstCorrectionMinutes, 60);
+  console.log('PASS standard-clock minute preservation, legacy fallback, strict validation and field whitelist');
   const boundaryForm: BirthFormState = { name: '', year: '1900', month: '1', day: '1', clockHour: '0', clockMinute: '15', unknownTime: false, province: '新疆', city: '', longitude: 80, gender: 'female', useTrueSolarTime: true };
   for (const form of [boundaryForm, { ...boundaryForm, year: '2000', month: '12', day: '31', clockHour: '23', clockMinute: '30', useTrueSolarTime: false }]) {
     const normalized = normalizeBirthInput(form);
     const localChart = generateChart(normalized.birthInfo);
     const serverChart = rebuildChart(localChart);
     assert.deepEqual(serverChart.palaces, localChart.palaces);
+    assert.deepEqual(serverChart.lunarInfo, localChart.lunarInfo);
+    assert.deepEqual(serverChart.birthInfo.standardTime, localChart.birthInfo.standardTime);
     assert.equal(serverChart.birthInfo.year, form.year === '1900' ? 1899 : 2001);
   }
   console.log('PASS invalid dates, roles, origin, payload limit and chart rebuilding');
@@ -83,6 +113,10 @@ async function main() {
   assert.equal(posted.model, 'test-model');
   assert.equal(posted.max_tokens, 4096);
   assert.ok(!result.includes('synthetic-test-key'));
+  assert.ok((await (await interpret(request({ chart: minuteChart, messages }))).text()).includes('[DONE]'));
+  const minutePrompt = (posted.messages as { role: string; content: string }[]).find(message => message.role === 'system')?.content ?? '';
+  assert.ok(minutePrompt.includes('"fourPillars":["癸未","乙丑"'), '实际模拟模型请求须携带已保留分钟的四柱');
+  assert.ok(minutePrompt.includes('"fourPillarsTimeSource":"standard-clock"'));
   const followup = [...messages, { role: 'assistant', content: '前次答复' }, { role: 'user', content: '继续说明' }];
   const paired = await heming(request({ chartA: chart, chartB: chart, relationship: '上下级', messages: followup }));
   assert.ok((await paired.text()).includes('[DONE]'));

@@ -12,7 +12,8 @@
     "test:ai": "tsx lib/ai/api.test.ts",
     "test:twins": "tsx scripts/regression/twin-time-windows.test.ts",
     "test:corpora": "tsx scripts/regression/reference-corpora.test.ts",
-    "test:time-flow": "tsx scripts/regression/time-flow.test.ts"
+    "test:time-flow": "tsx scripts/regression/time-flow.test.ts && tsx scripts/regression/time-flow-calendar.test.ts && tsx scripts/regression/current-time.test.ts && tsx scripts/regression/metis-flow-parity.test.ts",
+    "audit:metis-natal": "tsx scripts/regression/metis-natal-parity.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
