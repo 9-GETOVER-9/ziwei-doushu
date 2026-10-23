@@ -1,5 +1,65 @@
 <div align="center">
 
+# 紫微斗数 · 排盘引擎与研习工作台
+
+**从排盘计算到经典研习，读懂每一步结果的来源。**
+
+`Next.js` · `TypeScript` · `排盘引擎` · `研习资料`
+
+[![GitHub Stars](https://img.shields.io/github/stars/9-GETOVER-9/ziwei-doushu?style=for-the-badge&color=839778)](https://github.com/9-GETOVER-9/ziwei-doushu/stargazers)
+[![Code License: MIT](https://img.shields.io/badge/Code%20License-MIT-7A9270?style=for-the-badge)](LICENSE)
+
+[快速开始](#section-1) · [使用边界与验证](#section-3) · [三、快速开始](#section-8) · [七、开源边界：什么不在里面](#section-12)
+
+</div>
+
+---
+
+> 这是基于 [Renhuai123/ziwei-doushu](https://github.com/Renhuai123/ziwei-doushu) 的个人维护仓库。下方先说明本仓库的启动方式；上游介绍与历史数据说明完整保留在折叠区。
+
+<a id="section-1"></a>
+
+## 快速开始
+
+```bash
+git clone https://github.com/9-GETOVER-9/ziwei-doushu.git
+cd ziwei-doushu
+npm install
+npm run dev
+```
+
+按终端提示打开本地页面；`/chart` 是开源排盘引擎 Demo 入口。
+
+<a id="section-2"></a>
+
+## 可读到的内容
+
+| 入口 | 用途 |
+| --- | --- |
+| [app/chart/page.tsx](app/chart/page.tsx) | 排盘 Demo 页面与时间导航 |
+| [components/](components/) | 命盘、表单与解读面板组件 |
+| [lib/](lib/) | 排盘逻辑、经典材料与辅助数据 |
+| [package.json](package.json) | 开发、构建、类型检查及回归测试命令 |
+
+<a id="section-3"></a>
+
+## 使用边界与验证
+
+此处开源界面是引擎演示，不应把上游在线站的全部能力视为本仓库已经实现。AI 服务需要自行实现相应接口；仓库中没有可直接使用的完整线上 AI 后端。
+
+开发检查：`npm run typecheck`、`npm test`、`npm run build`。这些是仓库提供的命令，不代表本文档变更已重新执行全部产品测试。
+
+<a id="section-4"></a>
+
+## 上游与授权
+
+源码、数据和引文的授权范围不同，使用前阅读 [LICENSE](LICENSE) 与下方原始“协议”说明。上游历史样本数量、线上服务和维护承诺归属于原项目，不作为本仓库新增成果。
+
+<details>
+<summary>展开上游项目介绍、数据说明、技术细节与署名</summary>
+
+<div align="center">
+
 # 紫微斗数 · 开源排盘引擎
 
 [![CI](https://github.com/Renhuai123/ziwei-doushu/actions/workflows/ci.yml/badge.svg)](https://github.com/Renhuai123/ziwei-doushu/actions/workflows/ci.yml)
@@ -20,6 +80,8 @@
 
 ---
 
+<a id="section-5"></a>
+
 ## 目录
 
 | | 章节 | 一句话 |
@@ -36,6 +98,8 @@
 | 十 | [关于与联系](#十关于与联系) | 项目理念、技术栈、联系方式 |
 
 ---
+
+<a id="section-6"></a>
 
 ## 一、本轮更新（2026-09-21）
 
@@ -65,6 +129,8 @@
 **5. 文档与许可** —— 新增 [`DATASET-LICENSE`](./DATASET-LICENSE)；README 补齐引擎能力清单、维护节奏、开源边界；修正两处不实描述（数据集「口径与线上完全一致」、界面「完整的 Next.js 15 前端」）。
 
 ---
+
+<a id="section-7"></a>
 
 ## 二、51.8 万命盘样本数据集
 
@@ -162,6 +228,8 @@ Expand-Archive combined.zip
 
 ---
 
+<a id="section-8"></a>
+
 ## 三、快速开始
 
 ```bash
@@ -191,6 +259,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 > **注意：开源版不含后端 API 路由。**排盘、命盘展示、合盘起盘都在浏览器里用本仓库的引擎完成，**不需要任何 API Key**。AI 解读（`/api/interpret`）和合盘 AI 分析（`/api/heming`）需要你自己实现接口；没实现之前，这两处会直接提示「开源版不含该接口」，配置 API Key 也不会变成可用（#30 就是这个原因）。
 
 ---
+
+<a id="section-9"></a>
 
 ## 四、排盘引擎
 
@@ -241,6 +311,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 ---
 
+<a id="section-10"></a>
+
 ## 五、倪师《天纪·紫微斗数》原话
 
 ![倪海厦《天纪·紫微斗数》一图看全](./docs/tianji-ziwei/overview.png)
@@ -252,6 +324,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 - **能不能商用**：**不能**。这一章的内容单独采用 CC BY-NC-SA 4.0，详见[九、协议](#九协议)。
 
 ---
+
+<a id="section-11"></a>
 
 ## 六、界面是一份 Demo
 
@@ -271,6 +345,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 ---
 
+<a id="section-12"></a>
+
 ## 七、开源边界：什么不在里面
 
 | | 内容 |
@@ -282,6 +358,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 ---
 
+<a id="section-13"></a>
+
 ## 八、维护节奏与贡献
 
 这个仓库是**排盘引擎 + 数据集的开放快照**，不是一个全职维护的开源产品，说清楚免得大家猜：
@@ -291,6 +369,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 - **PR**：欢迎，尤其是回归测试、口径修正、文档。动到排盘口径的改动请附上依据（古籍原文或可核对的对照）。
 
 ---
+
+<a id="section-14"></a>
 
 ## 九、协议
 
@@ -306,6 +386,8 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 **一句话**：代码和数据拿去用，商用也行，把来源链接带上就行；倪师原话只限非商业的学习研究。
 
 ---
+
+<a id="section-15"></a>
 
 ## 十、关于与联系
 
@@ -330,3 +412,5 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 - 线上平台：[metisziwei.com](https://metisziwei.com/?from=gh-readme)（已完成 ICP 备案：渝ICP备2026013379号-1）
 - 提问题、提修复：见 [CONTRIBUTING.md](./CONTRIBUTING.md)；使用交流请到 [讨论区](https://github.com/Renhuai123/ziwei-doushu/discussions)
 - 💕 发财的小手点一下：小红书 / 抖音 / 闲鱼 / X 关注 **王多鱼AI**，第一时间看上线 + 解锁更多紫微干货～
+
+</details>
