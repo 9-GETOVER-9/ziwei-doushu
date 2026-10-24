@@ -6,8 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/regression/pan-integrity.test.ts && tsx scripts/regression/dst-cn.test.ts && tsx scripts/regression/sizhu-lichun-boundary.test.ts && tsx scripts/regression/hongluan-tianxi.test.ts && tsx scripts/regression/famous-hour-consistency.test.ts && tsx scripts/regression/iztro-time-index-boundary.test.ts && tsx scripts/regression/solar-date-exists.test.ts && tsx scripts/regression/natal-dual-sihua-same-palace.test.ts"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "tsx scripts/regression/pan-integrity.test.ts && tsx scripts/regression/dst-cn.test.ts && tsx scripts/regression/sizhu-lichun-boundary.test.ts && tsx scripts/regression/hongluan-tianxi.test.ts && tsx scripts/regression/famous-hour-consistency.test.ts && tsx scripts/regression/iztro-time-index-boundary.test.ts && tsx scripts/regression/solar-date-exists.test.ts && tsx scripts/regression/natal-dual-sihua-same-palace.test.ts && npm run test:input && npm run test:ai && npm run test:twins && npm run test:corpora && npm run test:time-flow",
+    "test:input": "tsx scripts/regression/input-normalize.test.ts",
+    "test:ai": "tsx lib/ai/api.test.ts && tsx lib/ai/life-kline-api.test.ts",
+    "test:twins": "tsx scripts/regression/twin-time-windows.test.ts",
+    "test:corpora": "tsx scripts/regression/reference-corpora.test.ts",
+    "test:time-flow": "tsx scripts/regression/time-flow.test.ts && tsx scripts/regression/time-flow-calendar.test.ts && tsx scripts/regression/current-time.test.ts && tsx scripts/regression/metis-flow-parity.test.ts && npm run test:life-kline",
+    "test:life-kline": "tsx scripts/regression/life-kline.test.ts",
+    "audit:metis-natal": "tsx scripts/regression/metis-natal-parity.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",

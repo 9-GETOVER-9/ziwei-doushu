@@ -1,369 +1,131 @@
 'use client';
-import { useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import BirthForm, { type BirthFormState } from '@/components/BirthForm';
-import { formToBirthInfo } from '@/lib/ziwei/share';
-import { generateChart as buildChart } from '@/lib/ziwei/algorithm';
-import type { BirthInfo, ZiweiChart } from '@/lib/ziwei/types';
-import { useTheme } from '@/components/ThemeProvider';
 
-// ─── AiContent 渲染器（与 InsightPanel 一致）────────────────
-function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
-  const lines = text.split('\n');
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {lines.map((line, i) => {
-        const sectionMatch = line.match(/^\*\*【(.+?)】\*\*$/);
-        if (sectionMatch) {
-          return (
-            <div key={i} style={{ paddingTop: i === 0 ? 0 : '14px', paddingBottom: '4px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ac)', letterSpacing: '0.04em' }}>
-                【{sectionMatch[1]}】
-              </span>
-            </div>
-          );
-        }
-        if (line.trim() === '') return <div key={i} style={{ height: '4px' }} />;
-        const parts = line.split(/\*\*(.+?)\*\*/);
-        return (
-          <div key={i} style={{ fontSize: '13px', lineHeight: 1.75, color: 'var(--tx-2)' }}>
-            {parts.map((part, j) =>
-              j % 2 === 0
-                ? part
-                : <strong key={j} style={{ fontWeight: 500, color: 'var(--tx-0)' }}>{part}</strong>
-            )}
-          </div>
-        );
-      })}
-      {streaming && (
-        <span style={{
-          display: 'inline-block', width: '7px', height: '13px',
-          background: 'var(--ac)', opacity: 0.5, borderRadius: '2px',
-          animation: 'pulse 1s ease-in-out infinite',
-          verticalAlign: 'middle', marginLeft: '2px',
-        }} />
-      )}
-    </div>
-  );
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import BirthForm, { type BirthFormState } from '@/components/BirthForm';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+import { formToBirthInfo, formToSearchParams } from '@/lib/ziwei/share';
+import { generateChart } from '@/lib/ziwei/algorithm';
+import { streamAi } from '@/lib/ai/client';
+import type { Palace, ZiweiChart } from '@/lib/ziwei/types';
+import '@/components/ExplorePages.css';
+
+const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
+const FOCUS_PALACES: Record<string, string[]> = {
+  '感情': ['命宫', '夫妻', '福德', '迁移'],
+  '合伙': ['命宫', '官禄', '财帛', '交友'],
+  '上下级': ['命宫', '官禄', '交友', '迁移'],
+  '朋友': ['命宫', '交友', '福德', '迁移'],
+};
+
+function findPalace(chart: ZiweiChart, name: string) {
+  const normalizeName = (value: string) => value.replace('宫', '').replace('仆役', '交友');
+  return chart.palaces.find(p => normalizeName(p.name) === normalizeName(name));
+}
+
+function PalaceStars({ palace }: { palace?: Palace }) {
+  if (!palace) return <span>未找到宫位</span>;
+  const major = palace.stars.filter(s => s.type === 'major');
+  const transformations = palace.stars.filter(s => s.siHua);
+  return <div className="explore-palace-stars">
+    <strong>{major.map(s => s.name).join('、') || '空宫'}</strong>
+    <span>{BRANCHES[palace.branch]}宫{major.length === 0 && palace.borrowedStars?.length ? ` · 对宫 ${palace.borrowedStars.join('、')}` : ''}</span>
+    {transformations.length > 0 && <span className="explore-accent">{transformations.map(s => `${s.name}化${s.siHua}`).join(' · ')}</span>}
+  </div>;
 }
 
 export default function HemingPage() {
-  const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  // ─── 双方命盘状态 ─────────────────────────────────────────
-  const [chartA, setChartA] = useState<ZiweiChart | null>(null);
-  const [chartB, setChartB] = useState<ZiweiChart | null>(null);
-  // 双方表单状态由 BirthForm onFormSave 同步到此处，统一按钮触发起盘
   const [formA, setFormA] = useState<BirthFormState | null>(null);
   const [formB, setFormB] = useState<BirthFormState | null>(null);
-
-  // ─── AI 合盘分析状态 ─────────────────────────────────────
+  const [result, setResult] = useState<{ a: ZiweiChart; b: ZiweiChart; formA: BirthFormState; formB: BirthFormState } | null>(null);
+  const [relationship, setRelationship] = useState('感情');
+  const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState('');
+  const [aiError, setAiError] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [question, setQuestion] = useState('');
-  const [analysisError, setAnalysisError] = useState(false);
-  // 开源版不含 /api/heming：接口 404 时单独说明，而不是让用户反复重试
-  const [apiMissing, setApiMissing] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const analysisRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const requestRef = useRef<AbortController | null>(null);
+  const resultRef = useRef<HTMLElement>(null);
+  const dirty = result && (JSON.stringify(formA) !== JSON.stringify(result.formA) || JSON.stringify(formB) !== JSON.stringify(result.formB));
+  useEffect(() => () => requestRef.current?.abort(), []);
 
-  // ─── 起盘（单次调用，返回 chart 给统一流程使用）──────────
-  // 开源版不含后端 /api/generate：直接用本仓库的排盘引擎在浏览器里起盘
-  const generateChart = useCallback(async (info: BirthInfo): Promise<ZiweiChart | null> => {
+  function resetAi() {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setAnalyzing(false); setAnalysis(''); setAiError(''); setMessages([]); setQuestion('');
+  }
+
+  function compareCharts() {
+    setError('');
+    if (!formA?.year || !formA.month || !formA.day || !formB?.year || !formB.month || !formB.day) {
+      setError('请填写双方完整的出生年月日。'); return;
+    }
+    if (formA.unknownTime || formB.unknownTime) {
+      setError('双人宫位比较需要双方的出生时辰。请补全时间后再开始。'); return;
+    }
     try {
-      return buildChart(info);
-    } catch {
-      return null;
-    }
-  }, []);
+      const a = generateChart(formToBirthInfo(formA));
+      const b = generateChart(formToBirthInfo(formB));
+      resetAi();
+      setResult({ a, b, formA: { ...formA }, formB: { ...formB } });
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+    } catch (e) { setError(e instanceof Error ? e.message : '出生信息无法排盘，请检查日期与时间。'); }
+  }
 
-  // 表单是否填齐
-  const isFormReady = (f: BirthFormState | null): boolean =>
-    !!(f && f.year && f.month && f.day && f.gender && (f.unknownTime || (f.clockHour !== '' && f.clockMinute !== '')));
-
-  // ─── 统一入口：起盘 + 合盘分析 ─────────────────────────────
-  const runAnalysis = useCallback(async (q?: string) => {
-    setFormError(null);
-    if (!isFormReady(formA) || !isFormReady(formB)) {
-      setFormError('请先填写双方完整出生信息');
-      return;
-    }
-    setAnalyzing(true);
-    setAnalysis('');
-    setAnalysisError(false);
-
+  async function analyze(followUp?: string) {
+    if (!result || dirty || analyzing) return;
+    const controller = new AbortController();
+    requestRef.current?.abort(); requestRef.current = controller;
+    const prompt = followUp?.trim() || `请从${relationship}关系角度，基于双方真实命盘进行合盘解读，不生成无依据的匹配分数。`;
+    setAnalyzing(true); setAiError(''); setAnalysis('');
+    let received = '';
     try {
-      // 并行起两张盘（如果还没起）
-      let cA = chartA;
-      let cB = chartB;
-      const [newA, newB] = await Promise.all([
-        cA ? Promise.resolve(cA) : generateChart(formToBirthInfo(formA!)),
-        cB ? Promise.resolve(cB) : generateChart(formToBirthInfo(formB!)),
-      ]);
-      cA = newA;
-      cB = newB;
-      if (!cA || !cB) {
-        setAnalysisError(true);
-        setAnalyzing(false);
-        return;
+      const relationshipLabel: Record<string, string> = { '感情': '恋爱', '合伙': '事业伙伴', '上下级': '上下级', '朋友': '朋友' };
+      const conversation = [...messages.slice(-22).map(message => ({ ...message, content: message.content.slice(0, 16_000) })), { role: 'user' as const, content: prompt }];
+      while (conversation.length > 1 && conversation.reduce((total, message) => total + message.content.length, 0) > 48_000) conversation.splice(0, 2);
+      await streamAi('/api/heming', { chartA: result.a, chartB: result.b, relationship: relationshipLabel[relationship], messages: conversation }, controller.signal, text => { received = text; setAnalysis(text); });
+      if (!controller.signal.aborted) {
+        setMessages(previous => [...previous, { role: 'user', content: prompt }, { role: 'assistant', content: received }]);
+        setAnalysis('');
+        setQuestion('');
       }
-      if (!chartA) setChartA(cA);
-      if (!chartB) setChartB(cB);
+    } catch (e) { if (!controller.signal.aborted) setAiError(e instanceof Error ? e.message : '暂时无法生成解读，请稍后重试。'); }
+    finally { if (requestRef.current === controller) { setAnalyzing(false); requestRef.current = null; } }
+  }
 
-      const res = await fetch('/api/heming', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chartA: cA, chartB: cB, question: q ?? undefined }),
-      });
-      if (res.status === 404) { setApiMissing(true); throw new Error('api-missing'); }
-      if (!res.ok || !res.body) throw new Error();
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          try {
-            const delta = JSON.parse(data).delta?.text ?? '';
-            text += delta;
-            setAnalysis(text);
-          } catch { /* skip */ }
-        }
-      }
-      // scroll to analysis
-      setTimeout(() => analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch {
-      setAnalysisError(true);
-    } finally {
-      setAnalyzing(false);
-    }
-  }, [chartA, chartB, formA, formB, generateChart]);
-
-  const cardStyle = {
-    background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.9)',
-    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(200,160,60,0.2)'}`,
-    borderRadius: '16px',
-    padding: '24px',
-  };
-
-  const labelStyle = {
-    fontSize: '10px', letterSpacing: '0.4em', color: 'var(--ac)', opacity: 0.7,
-    marginBottom: '16px', display: 'block',
-  };
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
-      {/* 顶栏 */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        background: isDark ? 'rgba(2,8,16,0.88)' : 'rgba(250,245,235,0.92)',
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--bdr)',
-        display: 'flex', alignItems: 'center', padding: '0 24px', height: '52px', gap: '16px',
-      }}>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px',
-            color: 'var(--tx-3)', background: 'none', border: 'none', cursor: 'pointer',
-          }}
-        >
-          <span style={{ fontSize: '16px' }}>‹</span>
-          <span>返回</span>
-        </button>
-        <div style={{ width: '1px', height: '20px', background: 'var(--bdr-med)' }} />
-        <span style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.2em' }}>合盘分析</span>
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: '11px', color: 'var(--tx-3)' }}>感情 · 合伙 · 亲子 · 朋友</span>
-      </header>
-
-      {/* 主体 */}
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px 80px' }}>
-
-        {/* 标题 */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <div style={{ fontSize: '28px', color: 'var(--ac)', opacity: 0.15, marginBottom: '12px' }}>☯</div>
-          <h1 style={{ fontSize: '22px', fontWeight: 600, letterSpacing: '0.15em', color: 'var(--tx-0)', marginBottom: '8px' }}>
-            紫微合盘
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--tx-3)', lineHeight: 1.6 }}>
-            输入两个人的出生信息，AI 基于倪海厦体系分析双方命盘的缘分匹配度、感情走向与相处建议
-          </p>
-        </div>
-
-        {/* 双栏表单 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}
-          className="heming-grid">
-          {/* 甲方 */}
-          <div style={cardStyle}>
-            <span style={labelStyle}>甲方 — A</span>
-            <BirthForm
-              hideSubmit
-              onSubmit={() => {}}
-              onFormSave={setFormA}
-            />
-          </div>
-
-          {/* 乙方 */}
-          <div style={cardStyle}>
-            <span style={labelStyle}>乙方 — B</span>
-            <BirthForm
-              hideSubmit
-              onSubmit={() => {}}
-              onFormSave={setFormB}
-            />
-          </div>
-        </div>
-
-        {/* ═══ 大合盘分析框（视觉中心，始终显示）════════════════ */}
-        <div ref={analysisRef} style={{
-          ...cardStyle,
-          minHeight: '320px',
-          padding: '32px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: (!analysis && !analyzing) ? 'center' : 'flex-start',
-        }}>
-          {/* 区块标题 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: (analysis || analyzing) ? '20px' : '24px' }}>
-            <span style={{ color: 'var(--ac)', opacity: 0.6 }}>◉</span>
-            <span style={{ fontSize: '11px', letterSpacing: '0.3em', color: 'var(--tx-3)' }}>合盘分析 · HEMING</span>
-          </div>
-
-          {/* 状态分支 */}
-          {!analysis && !analyzing && (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ fontSize: '13px', color: 'var(--tx-3)', marginBottom: '24px', lineHeight: 1.7 }}>
-                填好双方出生信息后，点击下方按钮<br />
-                AI 将基于倪海厦体系深度分析两人缘分匹配度
-              </div>
-              <button
-                onClick={() => runAnalysis()}
-                style={{
-                  padding: '14px 40px', borderRadius: 'var(--r-pill)', border: 'none',
-                  background: 'linear-gradient(135deg, #9a6210, #c88020)',
-                  color: '#fff8e8', fontSize: '14px', fontWeight: 600,
-                  letterSpacing: '0.15em', cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(140,100,20,0.25)',
-                  transition: 'transform 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
-              >
-                开始合盘分析
-              </button>
-              {formError && (
-                <div style={{ marginTop: '20px', fontSize: '13px', color: '#dc2626' }}>
-                  {formError}
-                </div>
-              )}
-            </div>
-          )}
-
-          {analyzing && !analysis && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '40px 0', color: 'var(--tx-3)', fontSize: '13px' }}>
-              <div style={{
-                width: '14px', height: '14px',
-                border: '2px solid var(--bdr-med)', borderTopColor: 'var(--ac)',
-                borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-              }} />
-              正在对比双方命盘…
-            </div>
-          )}
-
-          {analysis && <AiContent text={analysis} streaming={analyzing} />}
-
-          {analysisError && (
-            <div style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--bdr)', background: 'var(--bg-card)', fontSize: '13px', color: 'var(--tx-2)', marginTop: '12px' }}>
-              {apiMissing
-                ? '开源版不含合盘 AI 分析接口（/api/heming），需要你自己实现后才能用。两人的命盘可以分别到「排盘」页（/chart）查看。'
-                : '分析暂时不可用，请重试。'}
-            </div>
-          )}
-        </div>
-
-        {/* ═══ 针对合盘的追问聊天框（仅分析完成后显示）═══════════ */}
-        {analysis && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.2em', color: 'var(--tx-3)', marginBottom: '4px' }}>
-              针对此次合盘继续追问
-            </div>
-
-            {/* 快捷问题 */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {[
-                '感情匹配度如何？',
-                '适合合伙创业吗？',
-                '两人结婚是否合适？',
-                '哪方面最容易产生矛盾？',
-                '财运是否互补？',
-              ].map(q => (
-                <button
-                  key={q}
-                  onClick={() => { setQuestion(q); runAnalysis(q); }}
-                  disabled={analyzing}
-                  style={{
-                    fontSize: '12px', padding: '6px 14px',
-                    borderRadius: 'var(--r-pill)',
-                    border: '1px solid var(--bdr-med)',
-                    background: 'transparent', color: 'var(--tx-2)',
-                    cursor: analyzing ? 'not-allowed' : 'pointer',
-                    opacity: analyzing ? 0.5 : 1,
-                    transition: 'border-color 0.15s',
-                  }}
-                  onMouseEnter={e => { if (!analyzing) (e.currentTarget as HTMLElement).style.borderColor = 'var(--ac-bdr)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--bdr-med)'; }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-
-            {/* 输入框 + 追问按钮 */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                value={question}
-                onChange={e => setQuestion(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !analyzing) runAnalysis(question || undefined); }}
-                placeholder="继续追问，如：哪几年是两人感情关键期？"
-                disabled={analyzing}
-                className="input-base"
-                style={{ fontSize: '13px', flex: 1 }}
-              />
-              <button
-                onClick={() => runAnalysis(question || undefined)}
-                disabled={analyzing}
-                style={{
-                  padding: '10px 20px', borderRadius: 'var(--r-sm)', border: 'none',
-                  background: analyzing ? 'var(--bg-2)' : 'var(--tx-0)',
-                  color: analyzing ? 'var(--tx-3)' : 'white',
-                  fontSize: '13px', fontWeight: 500,
-                  cursor: analyzing ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.15s', whiteSpace: 'nowrap',
-                }}
-              >
-                {analyzing ? '分析中…' : '继续追问'}
-              </button>
-            </div>
-          </div>
-        )}
+  return <div className="explore-page">
+    <SiteHeader />
+    <main id="main-content" className="explore-shell">
+      <header className="explore-intro"><span className="explore-eyebrow">RELATIONSHIPS · 双人合盘</span><h1 className="studio-heading">在彼此的星图中，<br />多一份理解。</h1><p>从两张真实命盘出发，看见相同的星曜，也看见各自的不同。</p></header>
+      <div className="explore-tabs" aria-label="关系类型">{Object.keys(FOCUS_PALACES).map(type => <button key={type} type="button" aria-pressed={relationship === type} className={relationship === type ? 'is-active' : ''} onClick={() => { setRelationship(type); resetAi(); }}>{type}</button>)}</div>
+      <div className="explore-grid-two explore-birth-grid">
+        <section className="studio-panel explore-person-form"><div className="explore-section-title"><span className="explore-index">01</span><h2>你的出生信息</h2></div><BirthForm hideSubmit onSubmit={() => {}} onFormSave={setFormA} /></section>
+        <section className="studio-panel explore-person-form"><div className="explore-section-title"><span className="explore-index">02</span><h2>对方的出生信息</h2></div><BirthForm hideSubmit onSubmit={() => {}} onFormSave={setFormB} /></section>
       </div>
-
-      <style>{`
-        @media (max-width: 680px) {
-          .heming-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </div>
-  );
+      <div className="explore-action-row"><button className="studio-button" onClick={compareCharts}>{result ? '更新双人命盘' : '开始双人合盘'} <span aria-hidden="true">↗</span></button><span>排盘计算在当前浏览器完成，AI 解读需单独开启。</span></div>
+      {error && <p className="explore-error" role="alert">{error}</p>}
+      {result ? <section className="explore-results" ref={resultRef} aria-live="polite">
+        <div className="explore-section-title"><div><span className="explore-eyebrow">CHART COMPARISON</span><h2>{result.formA.name || '你'} × {result.formB.name || '对方'}</h2></div><span className="explore-tag">{relationship} · 宫位对照</span></div>
+        {dirty && <p className="explore-note">出生信息已修改。点击「更新双人命盘」后，下面的结果才会同步。</p>}
+        <div className="explore-grid-two explore-summary-grid">{[result.a, result.b].map((chart, i) => <div className="studio-panel explore-summary" key={i}><span>{i === 0 ? result.formA.name || '你' : result.formB.name || '对方'}</span><h3>{chart.wuxingJuName}</h3><p>命宫在{BRANCHES[chart.mingGongBranch]} · 身宫在{BRANCHES[chart.shenGongBranch]}</p><Link href={`/chart?${formToSearchParams(i === 0 ? result.formA : result.formB).toString()}`} className="explore-text-link">查看完整命盘 ↗</Link></div>)}</div>
+        <div className="explore-table-wrap"><table className="explore-compare-table"><thead><tr><th scope="col">关注宫位</th><th scope="col">{result.formA.name || '你'}</th><th scope="col">{result.formB.name || '对方'}</th><th scope="col">主星对照</th></tr></thead><tbody>{FOCUS_PALACES[relationship].map(name => {
+          const a = findPalace(result.a, name); const b = findPalace(result.b, name);
+          const aStars = a?.stars.filter(s => s.type === 'major').map(s => s.name).sort() || [];
+          const bStars = b?.stars.filter(s => s.type === 'major').map(s => s.name).sort() || [];
+          const shared = aStars.filter(s => bStars.includes(s));
+          return <tr key={name}><th scope="row">{name.endsWith('宫') ? name : `${name}宫`}</th><td><PalaceStars palace={a} /></td><td><PalaceStars palace={b} /></td><td>{shared.length > 0 ? `共同主星：${shared.join('、')}` : aStars.length === 0 && bStars.length === 0 ? '双方皆为空宫，需参考对宫' : '主星组合不同'}</td></tr>;
+        })}</tbody></table></div>
+        <p className="explore-note">这里展示排盘引擎计算出的宫位、主星与生年四化。星曜相同并不等于关系更合适，宫位对照本身不构成匹配评分。</p>
+        <Link href="/knowledge" className="explore-text-link">认识这些星曜 →</Link>
+        <section className="studio-panel explore-ai-panel"><div className="explore-section-title"><h2>AI 合盘解读</h2><span className="explore-tag">{relationship}</span></div><p className="explore-ai-description">开启后会将双方命盘交给已配置的 AI 服务，结合星曜结构解释关系中的相似与差异。</p>
+          {messages.map((message, i) => <div key={i} className={`explore-chat-message ${message.role}`}><span>{message.role === 'user' ? '你的问题' : '合盘解读'}</span><p>{message.content}</p></div>)}
+          {analysis && <div className="explore-ai-content">{analysis}</div>}
+          {aiError && <p className="explore-error" role="alert">{aiError}</p>}
+          {analyzing ? <div className="explore-action-row"><span role="status">正在生成解读…</span><button className="studio-button secondary" onClick={() => { requestRef.current?.abort(); setAnalyzing(false); }}>停止生成</button></div> : !messages.length ? <button disabled={!!dirty} className="studio-button" onClick={() => analyze()}>开启 AI 合盘解读 ↗</button> : <form className="explore-search" onSubmit={e => { e.preventDefault(); if (question.trim()) analyze(question); }}><label className="sr-only" htmlFor="heming-followup">继续追问</label><input id="heming-followup" value={question} onChange={e => setQuestion(e.target.value)} placeholder="关于这段关系，你还想了解什么？" required maxLength={4000} disabled={!!dirty} /><button className="studio-button" type="submit" disabled={!!dirty}>继续追问 ↗</button></form>}
+        </section>
+      </section> : <section className="explore-empty studio-panel"><span className="explore-orbit" aria-hidden="true">◎</span><h2>两张星图，一起展开</h2><p>填好双方信息后，可查看命宫与关系相关宫位的星曜对照。</p></section>}
+    </main><SiteFooter />
+  </div>;
 }

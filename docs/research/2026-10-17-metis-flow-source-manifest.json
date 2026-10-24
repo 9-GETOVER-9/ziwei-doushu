@@ -1,0 +1,53 @@
+{
+  "observedAt": "2026-10-17",
+  "upstream": {
+    "repository": "https://github.com/Renhuai123/ziwei-doushu",
+    "commit": "328337cbc3e005631142e5f9f6d6972040def7a5",
+    "license": "MIT",
+    "reviewedFiles": ["components/TimeNav.tsx", "components/ChartBoard.tsx", "lib/ziwei/sihua.ts", "lib/ziwei/constants.ts", "lib/ziwei/yunxian-context.ts"],
+    "boundary": "公开 Demo 仅本命/大限/流年界面；四化辅助函数有月/日/时，但线上命宫适配器未在公开树中找到。"
+  },
+  "deployment": {
+    "entry": "https://metisziwei.com/chart",
+    "discovery": "公开HTML的script src -> page中的ChartBoard动态导入 -> webpack chunk映射；未调用账号、命盘或其他私有API。",
+    "files": [
+      {
+        "url": "https://static.metisziwei.com/_next/static/chunks/app/chart/page-d30d3560899e94ea.js",
+        "sha256": "9e798bedc94605bf2d31194a915a062a7b65711927927d4cf559550cb0f47bc9",
+        "purpose": "确认月/日/时真实props、动态ChartBoard导入和北京时间当前时刻初始化。"
+      },
+      {
+        "url": "https://static.metisziwei.com/_next/static/chunks/686.8ec0c91d359d09fc.js",
+        "sha256": "b561b9479360c79aaf30141184150fc55667ed966b2549a5c81c0e692dec27c9",
+        "module": 70686,
+        "purpose": "生产ChartBoard：出生月策略重建本命，horoscope取年/月/日/时命宫；独立月干/日干/时干四化及祖先层叠加。"
+      },
+      {
+        "url": "https://static.metisziwei.com/_next/static/chunks/3701.d51bd9064d203962.js",
+        "sha256": "cc59648d1eb9718d33aa6d0c48a9c42abb74f3fecf0e4b29994d46e89ebe889b",
+        "module": 43701,
+        "purpose": "生产实际iztro引擎。读取normal配置和斗君/日时宫位公式；隔离VM执行得到8个固定输出，未猜测其精确包版本。"
+      },
+      {
+        "url": "https://static.metisziwei.com/_next/static/chunks/2051-7adbcd2c4ad3361d.js",
+        "sha256": "014fff40ec560adcb4c22434784c354d5fd3df235234a5474ffbeb1c82a84c90",
+        "module": 33640,
+        "purpose": "虚岁大限、童限偏移0/-4/-5/-2/+2与显式童限视角sentinel=-2。"
+      }
+    ],
+    "redistribution": "完整生产压缩代码仅作本机临时只读审计，没有收入本仓库，也不主张其开源授权。"
+  },
+  "regression": {
+    "file": "scripts/regression/metis-flow-parity.test.ts",
+    "offlineOracle": "已安装iztro 2.6.1真实horoscope调用 + 固定公开源码的独立四化辅助函数 + 8个直接执行部署引擎的固定样例",
+    "networkRequired": false,
+    "scope": "默认split出生月策略、已归日的0..11时支；全出生/目标时支、男女阴阳、12大限首尾、春节、1900–2050全部56个闰月15/16/29及合法30日、月界、完整60日干支周期。",
+    "evidenceBoundary": "同算法一致性，不是独立历法证据、所有流派一致性或命理预测准确率；童限四化与祖先层显示另作产品检查。"
+  },
+  "observedDifferences": [
+    "本地仅本命+所选层；生产从流年起累积祖先层四化。",
+    "本地童限decadal为空；生产显式童限大限视图按对应宫干四化，但流年等视图童限resolveEffectiveDaXianIndex=-1，不应概括成所有童限视图都有大限章。",
+    "生产页面当前时刻初始化23点不换民用日期；本地按明确晚子次日策略归日。",
+    "生产宫位适配异常时静默回退年支加月序，本地不会复制该无斗君的回退。"
+  ]
+}

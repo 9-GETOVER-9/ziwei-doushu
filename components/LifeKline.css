@@ -1,0 +1,102 @@
+.life-panel { padding:32px; min-width:0; margin-bottom:28px; }
+.life-computing { padding:35px 0; font-size:13px; line-height:2; color:var(--tx-3); }
+.life-computing progress { display:block; margin:14px 0; width:min(420px,100%); height:6px; accent-color:var(--ac); }
+.life-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.life-heading h2 { font-size:29px; font-weight:650; letter-spacing:.03em; margin:6px 0 10px; }
+.life-heading h2 span { font-size:14px; color:var(--tx-3); margin-left:20px; font-weight:400; letter-spacing:0; }
+.life-heading p,.life-muted { font-size:12px; color:var(--tx-3); line-height:1.8; }
+.life-disclosure { font-size:12px; color:var(--ac); background:var(--ac-bg,#f4f2fc); padding:10px 14px; border-radius:8px; margin:22px 0 24px; line-height:1.8; }
+.life-toolbar,.life-chart-meta,.life-year-navigation,.life-section-heading { display:flex; justify-content:space-between; align-items:center; gap:14px; }
+.life-theme-group,.life-range-group { display:flex; gap:4px; }
+.life-theme-group { background:var(--bg-1); padding:4px; border-radius:10px; }
+.life-theme-group button { padding:8px 23px; font-size:13px; color:var(--tx-3); border-radius:7px; }
+.life-theme-group button.is-active { background:var(--bg-card); color:var(--ac); box-shadow:0 2px 8px #3434590a; font-weight:600; }
+.life-range-group button { padding:5px 10px; border-radius:6px; font-size:12px; color:var(--tx-3); }
+.life-range-group button[aria-pressed=true] { background:var(--ac-bg,#f1effb); color:var(--ac); }
+.life-chart-meta { margin:26px 0 15px; font-size:11px; color:var(--tx-3); }
+.life-chart-scroll { overflow-x:auto; overscroll-behavior-x:contain; width:100%; scrollbar-width:thin; scrollbar-color:var(--bdr-med) transparent; border-radius:7px; }
+.life-chart { display:block; width:100%; min-width:720px; height:auto; }
+.life-grid-line { stroke:var(--bdr); stroke-width:1; }
+.life-grid-line.is-baseline { stroke:var(--tx-3); opacity:.45; stroke-dasharray:4 5; }
+.life-axis-text { font-size:11px; fill:var(--tx-3); font-family:var(--font-mono,monospace); }
+.life-decade-line { stroke:var(--bdr); stroke-dasharray:2 5; }
+.life-selected-column { fill:var(--ac); opacity:.07; }
+.life-close-line { fill:none; stroke:var(--ac); stroke-width:1; opacity:.2; pointer-events:none; }
+.life-candle { cursor:pointer; outline:none; --candle-color:#6a63bd; }
+.life-candle.is-falling { --candle-color:#429992; }
+.life-wick { stroke:var(--candle-color); stroke-width:1.4; pointer-events:none; }
+.life-candle-body { fill:var(--candle-color); stroke:var(--candle-color); stroke-width:1; pointer-events:none; }
+.life-candle:hover .life-candle-body,.life-candle:focus-visible .life-candle-body,.life-candle.is-selected .life-candle-body { stroke:var(--tx-0); stroke-width:2; }
+.life-today-dot { fill:#b38a45; }
+.life-legend { display:flex; flex-wrap:wrap; align-items:center; gap:20px; color:var(--tx-3); font-size:10px; margin:10px 0 24px; }
+.life-legend span { display:flex; gap:6px; align-items:center; }
+.life-legend span:last-child { margin-left:auto; }
+.life-legend i { width:7px; height:10px; border-radius:1px; background:#6a63bd; }
+.life-legend i.is-falling { background:#429992; }
+.life-legend i.is-current { width:5px; height:5px; background:#b38a45; border-radius:50%; }
+.life-year-navigation { padding:20px 0; border-top:1px solid var(--bdr); }
+.life-year-controls { display:flex; align-items:center; gap:8px; }
+.life-year-controls button { min-height:34px; min-width:34px; border:1px solid var(--bdr); border-radius:7px; color:var(--tx-2); }
+.life-year-controls button:disabled { opacity:.3; cursor:not-allowed; }
+.life-year-controls .life-current-button { padding:0 10px; font-size:11px; }
+.life-year-controls select { background:var(--bg-card); border:1px solid var(--bdr); border-radius:7px; padding:7px 25px 7px 10px; color:var(--tx-0); font-size:12px; }
+.life-year-card { display:flex; align-items:center; justify-content:space-between; gap:28px; padding:25px 28px; border:1px solid var(--bdr); border-radius:14px; background:linear-gradient(110deg,var(--ac-bg,#f6f4ff),var(--bg-card)); }
+.life-year-title h3 { font:500 35px var(--font-mono,monospace); color:var(--tx-0); line-height:1.3; }
+.life-year-title h3 small { display:inline-block; font:400 12px var(--font-body,sans-serif); color:var(--tx-3); margin-left:15px; }
+.life-year-title p { font-size:12px; color:var(--tx-2); margin-top:7px; }
+.life-ohlc { display:grid; grid-template-columns:repeat(4,1fr); gap:30px; }
+.life-ohlc dt { font-size:11px; color:var(--tx-3); margin-bottom:7px; }
+.life-ohlc dd { font:500 23px var(--font-mono,monospace); color:var(--ac); }
+.life-partial { margin-top:10px; font-size:11px; color:var(--tx-3); line-height:1.8; }
+.life-details-grid { display:grid; grid-template-columns:1fr 1fr; gap:34px; margin:30px 0; }
+.life-section-heading { margin-bottom:16px; }
+.life-section-heading h3 { font-size:17px; color:var(--tx-0); font-weight:600; }
+.life-section-heading .chart-detail-eyebrow { display:block; font-size:9px; margin-bottom:7px; }
+.life-month-list { display:grid; gap:4px; }
+.life-month-list button { display:grid; grid-template-columns:106px 1fr 38px; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; border:1px solid transparent; text-align:left; color:var(--tx-2); font-size:11px; }
+.life-month-list button.is-selected { border-color:var(--bdr-med); background:var(--ac-bg,#f7f5ff); color:var(--ac); }
+.life-month-list b { font-family:var(--font-mono,monospace); font-weight:500; text-align:right; }
+.life-month-track { height:5px; background:var(--bg-2,#eeedf6); border-radius:3px; overflow:hidden; }
+.life-month-track i { display:block; height:100%; background:var(--ac); opacity:.65; border-radius:3px; }
+.life-evidence-section { border-left:1px solid var(--bdr); padding-left:34px; }
+.life-contribution-list { margin-top:16px; max-height:350px; overflow-y:auto; padding-right:5px; }
+.life-contribution-list > div { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid var(--bdr); }
+.life-contribution-list span { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.life-contribution-list small { font-size:10px; color:var(--tx-3); background:var(--bg-1); border-radius:4px; padding:2px 4px; }
+.life-contribution-list strong { font-size:12px; font-weight:500; color:var(--tx-0); }
+.life-contribution-list em { font-size:10px; font-style:normal; color:var(--tx-3); }
+.life-contribution-list b { color:var(--ac); font:500 13px var(--font-mono,monospace); }
+.life-contribution-list b.is-negative { color:#429992; }
+.life-evidence-note { color:var(--tx-3); font-size:10px; line-height:1.8; margin-top:17px; }
+.life-ai-panel { padding:25px; border:1px solid var(--bdr); border-radius:12px; }
+.life-ai-panel .birth-notice { margin-top:15px; }
+.life-loading { color:var(--ac); font-size:12px; margin-top:18px; }
+.life-ai-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.95; font-size:13px; color:var(--tx-2); padding:20px 0 10px; }
+.life-method { margin-top:22px; color:var(--tx-3); font-size:11px; line-height:1.9; }
+.life-method summary { cursor:pointer; color:var(--tx-2); }
+.life-method > div { padding:12px 0 0; display:grid; gap:8px; }
+.chart-workspace-modes { display:flex; width:max-content; gap:7px; margin:0 0 22px; background:var(--bg-1); padding:5px; border-radius:11px; }
+.chart-workspace-modes button { padding:10px 22px; border-radius:8px; font-size:13px; color:var(--tx-3); }
+.chart-workspace-modes button[aria-pressed=true] { background:var(--bg-card); color:var(--ac); box-shadow:0 2px 8px #3434590a; font-weight:600; }
+.life-panel button:focus-visible,.life-panel select:focus-visible,.life-chart-scroll:focus-visible { outline:2px solid var(--ac); outline-offset:3px; }
+@media(max-width:760px) {
+  .life-panel { padding:20px 16px; }
+  .life-heading { align-items:flex-start; }
+  .life-heading h2 { font-size:25px; }
+  .life-heading h2 span { display:block; margin:8px 0 0; font-size:12px; }
+  .life-heading > button { padding:8px 10px; font-size:11px; white-space:nowrap; }
+  .life-toolbar { flex-wrap:wrap; }
+  .life-theme-group { flex:1; }
+  .life-theme-group button { flex:1; padding:8px 13px; }
+  .life-range-group { margin-left:auto; }
+  .life-legend { gap:12px; }
+  .life-legend span:last-child { margin-left:0; width:100%; }
+  .life-year-navigation { align-items:flex-start; flex-direction:column; gap:16px; }
+  .life-year-card { padding:20px; flex-direction:column; align-items:stretch; gap:20px; }
+  .life-ohlc { gap:12px; }
+  .life-ohlc dd { font-size:21px; }
+  .life-details-grid { grid-template-columns:1fr; gap:26px; }
+  .life-evidence-section { border-left:0; border-top:1px solid var(--bdr); padding:25px 0 0; }
+  .life-ai-panel { padding:18px; }
+  .life-ai-panel .life-section-heading { align-items:flex-start; flex-direction:column; }
+}
