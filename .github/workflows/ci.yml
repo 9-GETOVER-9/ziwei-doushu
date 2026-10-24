@@ -28,5 +28,8 @@ jobs:
       - name: 排盘引擎回归
         run: npm test
 
+      - name: 奇门排盘与导出回归
+        run: npm run test:qimen
+
       - name: 生产构建
         run: npm run build

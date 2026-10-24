@@ -14,6 +14,7 @@
     "test:corpora": "tsx scripts/regression/reference-corpora.test.ts",
     "test:time-flow": "tsx scripts/regression/time-flow.test.ts && tsx scripts/regression/time-flow-calendar.test.ts && tsx scripts/regression/current-time.test.ts && tsx scripts/regression/metis-flow-parity.test.ts && npm run test:life-kline",
     "test:life-kline": "tsx scripts/regression/life-kline.test.ts",
+    "test:qimen": "tsx scripts/regression/qimen.test.ts && tsx scripts/regression/qimen-export.test.ts",
     "audit:metis-natal": "tsx scripts/regression/metis-natal-parity.test.ts"
   },
   "dependencies": {

@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from './ThemeProvider';
 
-const links=[['/','首页'],['/chart','紫微命盘'],['/heming','合盘'],['/twins','命理双子'],['/academy','学术中心']];
+const links=[['/','首页'],['/chart','紫微命盘'],['/qimen','奇门排盘'],['/heming','合盘'],['/twins','命理双子'],['/academy','学术中心']];
 export default function SiteHeader(){
   const pathname=usePathname();
   const {theme,toggle}=useTheme();
