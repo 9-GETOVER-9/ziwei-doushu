@@ -1,0 +1,119 @@
+.studio-page.chart-workspace { display:block; flex:none; overflow:visible; width:min(1240px,calc(100% - 64px)); margin:0 auto; padding:54px 0 72px; min-height:calc(100vh - 200px); --t-gold:var(--ac,#5a5ad6); --t-bg:var(--bg-card,#fff); --t-surface:var(--bg-1,#f7f7fc); --t-border:var(--bdr,#e7e7ef); --t-text:var(--tx-0,#25263b); --t-text2:var(--tx-2,#66677c); --t-faint:var(--tx-3,#858699); }
+.chart-workspace .studio-heading { max-width:none; }
+.chart-workspace button, .birth-form button { -webkit-tap-highlight-color:transparent; }
+.chart-page-top { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:36px; }
+.chart-page-top .studio-heading { margin:0; }
+.chart-action-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.chart-intake-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr); gap:28px; align-items:start; }
+.chart-form-panel { padding:32px; }
+.chart-panel-title { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:28px; }
+.chart-panel-title h2,.chart-panel-title h3 { font-size:20px; font-weight:650; margin:0; }
+.chart-section-no { color:var(--ac); font:12px var(--font-mono,monospace); letter-spacing:.08em; }
+.chart-intro-panel { padding:34px; background:linear-gradient(145deg,#f7f6ff,#fff)!important; overflow:hidden; }
+.chart-intro-orbit { display:flex; align-items:center; justify-content:center; height:210px; position:relative; margin:0 0 22px; }
+.chart-intro-orbit .orbital-field { position:relative; inset:auto; width:100%; height:100%; opacity:1; }
+.chart-intro-orbit canvas { width:100%; height:100%; display:block; }
+.chart-intro-panel h2 { font-size:23px; font-weight:650; line-height:1.5; margin-bottom:12px; }
+.chart-intro-panel p { font-size:14px; color:var(--tx-2); line-height:1.9; }
+.chart-intro-list { display:grid; gap:19px; margin:26px 0; }
+.chart-intro-list li { display:flex; align-items:flex-start; gap:13px; font-size:14px; line-height:1.7; }
+.chart-intro-list b { display:flex; width:25px; height:25px; align-items:center; justify-content:center; border-radius:8px; color:var(--ac); background:#ecebfa; font-size:12px; flex-shrink:0; }
+.chart-intro-list small { display:block; color:var(--tx-3); font-size:12px; }
+.chart-text-button { color:var(--ac); font-size:13px; font-weight:550; background:transparent; border:0; cursor:pointer; }
+.birth-form { display:grid; gap:23px; color:var(--tx-0,#25263b); }
+.birth-field { min-width:0; margin:0; padding:0; border:0; }
+.birth-field > .studio-label,.birth-field > legend { display:block; margin-bottom:10px; font-size:13px; font-weight:550; }
+.birth-optional { margin-left:6px; font-size:11px; font-weight:400; color:var(--tx-3,#858699); }
+.birth-form-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+.birth-form input:not([type=checkbox]),.birth-form select { display:block; width:100%; height:46px; border:1px solid var(--bdr-med,#dedee9); border-radius:9px; background:var(--bg-card,#fff); color:var(--tx-0,#25263b); padding:0 12px; font-size:13px; transition:border-color .18s,box-shadow .18s; }
+.birth-form input::placeholder { color:var(--tx-3,#858699); }
+.birth-form input:focus,.birth-form select:focus { outline:none; border-color:var(--ac,#5a5ad6); box-shadow:0 0 0 3px #5a5ad610; }
+.birth-form input:disabled,.birth-form select:disabled { opacity:.45; cursor:not-allowed; }
+.birth-segment { display:flex; border:1px solid var(--bdr-med,#dedee9); border-radius:9px; padding:4px; height:46px; gap:4px; }
+.birth-segment button { flex:1; font-size:13px; border-radius:6px; color:var(--tx-2,#66677c); transition:background .15s; }
+.birth-segment button.is-active { color:var(--ac,#5a5ad6); background:#efedfc; font-weight:600; }
+.birth-calendar { display:flex; gap:4px; width:max-content; padding:3px; background:#f4f3fa; border-radius:7px; margin:-2px 0 13px; }
+.birth-calendar button { padding:4px 16px; font-size:12px; color:var(--tx-3,#858699); border-radius:5px; }
+.birth-calendar button.is-active { color:var(--ac,#5a5ad6); background:#fff; box-shadow:0 1px 4px #3333550a; }
+.birth-date-row { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:12px; }
+.birth-date-row label,.birth-time-row label { min-width:0; }
+.birth-time-row { display:grid; grid-template-columns:1fr 10px 1fr auto; gap:12px; align-items:center; }
+.birth-time-divider { text-align:center; color:var(--tx-3,#858699); }
+.birth-check { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12px; line-height:1.6; color:var(--tx-2,#66677c); cursor:pointer; }
+.birth-check input { accent-color:var(--ac,#5a5ad6); height:15px; width:15px; flex-shrink:0; }
+.birth-unknown { margin:0 0 0 7px; }
+.birth-preview { background:#f6f5fd; padding:12px 14px; border-radius:9px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; color:var(--ac,#5a5ad6); font-size:12px; }
+.birth-preview-dot { height:6px; width:6px; background:var(--ac,#5a5ad6); border-radius:50%; }
+.birth-preview small { width:100%; color:var(--tx-3,#858699); font-size:11px; line-height:1.7; }
+.birth-notice { padding:12px 15px; border-radius:9px; background:#f6f5fd; color:var(--ac,#5a5ad6); font-size:12px; line-height:1.8; }
+.birth-notice.warning { color:#946024; background:#fff7e9; border:1px solid #f0e1ca; }
+.birth-submit { width:100%; justify-content:center; min-height:48px; gap:20px; }
+.birth-privacy { margin:-11px 0 0; color:var(--tx-3,#858699); font-size:11px; text-align:center; line-height:1.7; }
+.chart-result-header { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:22px; padding:24px 28px; }
+.chart-person { display:flex; gap:17px; align-items:center; }
+.chart-person-icon { background:#efedfc; color:var(--ac); width:46px; height:46px; border-radius:13px; display:flex; justify-content:center; align-items:center; font-size:22px; }
+.chart-person h2 { font-size:21px; font-weight:650; margin-bottom:5px; }
+.chart-person p { font-size:12px; color:var(--tx-3); }
+.chart-result-layout { display:grid; grid-template-columns:minmax(0,1.22fr) minmax(330px,.78fr); gap:24px; align-items:start; }
+.chart-board-panel { padding:25px; }
+.chart-board-panel .chart-panel-title { margin-bottom:20px; }
+.chart-board-panel .chart-panel-title h3 { font-size:17px; }
+.chart-board-scroll { width:100%; overflow-x:auto; }
+.chart-board-scroll > div { min-width:420px; }
+.chart-board-panel .chart-board-scroll .text-sm { font-size:14px; }
+.chart-side-panel { padding:0; overflow:hidden; }
+.chart-detail-tabs { display:flex; gap:21px; border-bottom:1px solid var(--bdr); padding:0 24px; overflow-x:auto; }
+.chart-detail-tabs button { flex-shrink:0; padding:18px 0 14px; font-size:13px; border-bottom:2px solid transparent; color:var(--tx-3); }
+.chart-detail-tabs button.is-active { color:var(--ac); border-bottom-color:var(--ac); font-weight:600; }
+.chart-detail-content { padding:27px 25px; }
+.chart-detail-eyebrow { font-size:10px; letter-spacing:.13em; color:var(--ac); text-transform:uppercase; margin-bottom:12px; }
+.chart-detail-content h3 { font-size:24px; font-weight:650; line-height:1.5; }
+.chart-detail-content p { color:var(--tx-2); font-size:13px; line-height:1.95; }
+.chart-keywords { display:flex; flex-wrap:wrap; gap:7px; margin:16px 0 24px; }
+.chart-keywords span { font-size:11px; color:var(--ac); padding:5px 10px; border:1px solid #e5e2fa; background:#f7f5ff; border-radius:6px; }
+.chart-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 15px; margin:23px 0; padding:21px 0; border-top:1px solid var(--bdr); border-bottom:1px solid var(--bdr); }
+.chart-facts dt { font-size:11px; color:var(--tx-3); margin-bottom:6px; }
+.chart-facts dd { font-size:14px; font-weight:550; color:var(--tx-0); }
+.chart-subtitle { font-size:13px!important; font-weight:600; margin:22px 0 12px; }
+.chart-sihua-list { display:grid; gap:10px; }
+.chart-sihua-list li { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--tx-2); }
+.chart-sihua-list li > small { margin-left:auto; color:var(--tx-3); }
+.chart-sihua-badge { font-size:10px; padding:3px 7px; border-radius:5px; background:#f4f3fa; color:var(--ac); }
+.chart-sihua-badge[data-kind='禄'] { color:#277a57; background:#edf8f1; }
+.chart-sihua-badge[data-kind='权'] { color:#446db4; background:#eff4fd; }
+.chart-sihua-badge[data-kind='科'] { color:#987825; background:#fcf7e6; }
+.chart-sihua-badge[data-kind='忌'] { color:#b25b62; background:#fff0f1; }
+.chart-star-list { display:flex; gap:8px; flex-wrap:wrap; margin:17px 0; }
+.chart-star-list button { padding:7px 11px; border:1px solid var(--bdr); border-radius:7px; font-size:12px; }
+.chart-star-list button.is-active { border-color:var(--ac); color:var(--ac); background:#f7f5ff; }
+.chart-star-list small { font-size:10px; color:var(--tx-3); margin-left:6px; }
+.chart-star-description { border-left:2px solid #d9d5f4; padding-left:14px; margin:17px 0; }
+.chart-related-palaces { display:grid; gap:8px; margin:15px 0; }
+.chart-related-palaces button { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#f8f8fc; border-radius:7px; padding:10px 12px; font-size:12px; text-align:left; }
+.chart-related-palaces small { color:var(--tx-3); font-size:10px; }
+.chart-pattern { padding:16px 0; border-bottom:1px solid var(--bdr); }
+.chart-pattern:first-of-type { padding-top:10px; }
+.chart-pattern:last-child { border-bottom:0; }
+.chart-pattern h4 { font-size:15px; font-weight:600; margin-bottom:8px; }
+.chart-pattern small { display:block; color:var(--tx-3); font-size:10px; line-height:1.8; margin-top:9px; }
+.chart-method { margin-top:22px; padding-top:18px; border-top:1px solid var(--bdr); color:var(--tx-3)!important; font-size:11px!important; }
+.chart-result-notes { display:grid; gap:7px; margin-bottom:20px; }
+.chart-status { color:var(--ac); font-size:12px; margin:12px 0; }
+.chart-archives { margin-top:45px; padding-top:8px; scroll-margin-top:100px; }
+.chart-archive-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+.chart-archive-item { padding:21px; }
+.chart-archive-item h3 { font-size:15px; font-weight:600; }
+.chart-archive-item p { font-size:12px; line-height:1.8; color:var(--tx-3); margin:8px 0 16px; }
+.chart-archive-item .chart-action-row { justify-content:space-between; }
+.chart-archive-remove { font-size:11px; color:var(--tx-3); }
+.chart-archive-empty { border:1px dashed #deddeb; background:#fcfbff; border-radius:13px; padding:27px; color:var(--tx-3); font-size:13px; line-height:1.9; }
+@media(max-width:1000px) { .chart-result-layout { grid-template-columns:minmax(0,1fr); } .chart-intake-grid { grid-template-columns:minmax(0,1fr) 300px; } }
+@media(max-width:760px) { .studio-page.chart-workspace { width:calc(100% - 32px); padding-top:32px; } .chart-page-top,.chart-result-header { align-items:flex-start; flex-direction:column; } .chart-intake-grid { grid-template-columns:1fr; } .chart-form-panel,.chart-intro-panel { padding:24px; } .chart-intro-panel { display:none; } .chart-board-panel { padding:17px 12px; } .chart-board-scroll > div { min-width:320px; } .chart-archive-grid { grid-template-columns:1fr; } .chart-person h2 { font-size:19px; } .chart-detail-content { padding:24px 20px; } .chart-action-row .studio-button { font-size:12px; } }
+@media(max-width:420px) { .birth-form-row { gap:10px; } .birth-time-row { gap:8px; grid-template-columns:1fr 8px 1fr; } .birth-unknown { grid-column:1 / -1; margin:4px 0 0; } .birth-form input:not([type=checkbox]),.birth-form select { padding:0 8px; font-size:12px; } .chart-form-panel { padding:22px 18px; } }
+@media print { .chart-workspace .chart-action-row,.chart-workspace .chart-archives,.chart-detail-tabs,.chart-text-button { display:none!important; } .chart-result-layout { grid-template-columns:1fr; } .chart-workspace { --tx-0:#111; --tx-2:#333; --tx-3:#555; } .chart-board-panel { break-inside:avoid; } }
+[data-theme='dark'] .chart-intro-panel { background:linear-gradient(145deg,#22213a,#181824)!important; }
+[data-theme='dark'] .birth-calendar,[data-theme='dark'] .chart-person-icon,[data-theme='dark'] .chart-intro-list b,[data-theme='dark'] .chart-related-palaces button,[data-theme='dark'] .birth-preview,[data-theme='dark'] .birth-notice:not(.warning) { background:#29263e; }
+[data-theme='dark'] .birth-calendar button.is-active,[data-theme='dark'] .birth-segment button.is-active,[data-theme='dark'] .chart-keywords span,[data-theme='dark'] .chart-star-list button.is-active { background:#35304e; }
+[data-theme='dark'] .chart-keywords span { border-color:#47405f; }
+[data-theme='dark'] .chart-archive-empty { background:#201e2e; border-color:#464052; }
+[data-theme='dark'] .birth-notice.warning { background:#382e20; border-color:#5a462c; color:#e3bc86; }

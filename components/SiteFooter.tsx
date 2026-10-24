@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function SiteFooter(){return <footer className="site-footer"><div><Link href="/" className="footer-brand">紫微</Link><span>以星为引，以己为归。</span></div><nav aria-label="页脚导航"><Link href="/academy">学术中心</Link><Link href="/sanjige">三纪研习</Link><Link href="/support">使用帮助</Link><Link href="/privacy">隐私</Link><Link href="/terms">使用说明</Link></nav><p>基于 MetisZiwei 开源排盘引擎 · 传统文化学习与探索</p></footer>;}

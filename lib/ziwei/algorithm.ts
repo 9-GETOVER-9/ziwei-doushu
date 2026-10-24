@@ -10,6 +10,7 @@ import { BRANCHES, STEMS } from './constants';
 import { wenmoStarBrightness, type BrightnessSchool } from './wenmo-data';
 import { WENMO_AX } from './wenmo-tables.generated';
 import { DEFAULT_LEAP_MONTH } from './wenmo-config';
+import { getCurrentNominalAge } from './current-time';
 // 飞星派工具仅供导出，不再在排盘时调用（倪师《天纪 03》：四化星永远固定不动）
 // import { detectSelfSihua, getSiHuaByStem } from './sihua';
 
@@ -174,11 +175,17 @@ export function resolveEffectiveLunarDate(
   }
 
   let lunarDay = rawLunarDay;
-  try {
-    const monthKey = isLeapMonth ? -lunarMonth : lunarMonth;
-    const dayCount = LunarMonth.fromYm(lunarYear, monthKey)?.getDayCount?.();
-    if (typeof dayCount === 'number' && dayCount > 0 && lunarDay > dayCount) lunarDay = dayCount;
-  } catch { /* 查不到月信息则保留原日，维持下游既有容错 */ }
+  // split adjusts month-based placements only; bySolar keeps the actual leap
+  // day for day-based stars. Its effective month/day need not be a civil lunar
+  // date (e.g. leap 6/30 uses month 7 and day 30 even when regular 7 has 29 days).
+  // Non-split policies pass a substituted date to byLunar and must stay valid.
+  if (policy !== 'split') {
+    try {
+      const monthKey = isLeapMonth ? -lunarMonth : lunarMonth;
+      const dayCount = LunarMonth.fromYm(lunarYear, monthKey)?.getDayCount?.();
+      if (typeof dayCount === 'number' && dayCount > 0 && lunarDay > dayCount) lunarDay = dayCount;
+    } catch { /* 查不到月信息则保留原日，维持下游既有容错 */ }
+  }
 
   return {
     lunarYear,
@@ -197,6 +204,7 @@ export function getLunarInfo(
   day: number,
   hour?: number,
   policy: LunarMonthPolicy = 'prev-month',
+  standardTime?: BirthInfo['standardTime'],
 ): LunarInfo {
   const solar = Solar.fromYmd(year, month, day);
   const lunar = solar.getLunar();
@@ -217,11 +225,13 @@ export function getLunarInfo(
     //   的会被算进新的一年，年/月柱各差一位（会员实测：2004-02-04 丑时应为癸未/乙丑，却排成甲申/丙寅）。
     //   立春=2004-02-04 19:56，此人凌晨 2:40 生，本该上一年癸未。lunar-javascript 的 getYearGanByLiChun
     //   即使传入时间也按日切换（实测无效），getEightChar 才精确到分。
-    //   时刻用「时辰中点」(index*2 点)近似，与排盘既有的真太阳时时辰同口径；日柱/时柱不受立春影响、保持原算法。
-    //   非节气日新旧完全一致（只有落在立春/十二节当天、交节时刻前后的人才会变），已抽样 12 例逐一比对验证。
+    //   已知分钟时，用扣除夏令时后的东八区标准时刻判断交节，不能用真太阳时或晚子归日后的日期。
+    //   只有旧记录缺标准时刻时才用「时辰中点」(index*2 点)近似，并标明来源。
+    //   日柱/时柱仍用本次排盘日和已校正时支，不由交节判定改变。
     const effHour = (hour !== undefined && hour >= 0 && hour <= 11) ? hour * 2 : 0;
+    const termTime = standardTime ?? { year, month, day, clockHour: effHour, clockMinute: 0 };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ec = (Solar as any).fromYmdHms(year, month, day, effHour, 0, 0).getLunar().getEightChar();
+    const ec = (Solar as any).fromYmdHms(termTime.year, termTime.month, termTime.day, termTime.clockHour, termTime.clockMinute, 0).getLunar().getEightChar();
     const yearGZ = ec.getYear() as string;    // 节气四柱年柱：立春精确换年
     const monthGZ = ec.getMonth() as string;  // 节气四柱月柱：节气精确换月 + 五虎遁用立春校正后的年干
     const dayGZ = `${lu.getDayGan()}${lu.getDayZhi()}`;
@@ -254,6 +264,7 @@ export function getLunarInfo(
     yearBranch: yearBranch >= 0 ? yearBranch : 0,
     isLeapMonth: effective.isLeapMonth,
     fourPillars,
+    fourPillarsTimeSource: fourPillars ? (standardTime ? 'standard-clock' : 'branch-midpoint') : undefined,
     fourPillarsLunar,
   };
 }
@@ -560,17 +571,9 @@ export function generateChart(
   if (yearStemCn) applyWenmoKuiyue(palaces, yearStemCn);
 
   // ── 当前年龄 & 大限 ──
-  // ★ 用 iztro horoscope.age.nominalAge（中国虚岁口径，与 daXianAge 范围一致）
-  // 旧实现 `currentYear - year` 是年份差（少 1），导致大限边界年份错位 → 用户感觉
-  // "大限没走对，似乎还在走上一个大限"。统一用 iztro 自身口径修复。
-  let currentAge: number;
-  try {
-    const horo = (astrolabe as unknown as { horoscope: () => { age: { nominalAge: number } } }).horoscope();
-    currentAge = horo.age.nominalAge;
-  } catch {
-    // fallback：iztro 接口异常时回退到虚岁推导
-    currentAge = new Date().getFullYear() - year + 1;
-  }
+  // 与运限导航“今天”共用北京时间及晚子归日口径，按真实农历年计算虚岁。
+  // 不依赖 horoscope() 的宿主时区或全局 ageDivide，也不以公历出生年兜底。
+  const currentAge = getCurrentNominalAge(birthInfo);
 
   palaces.forEach(p => {
     if (p.daXianAge && currentAge >= p.daXianAge[0] && currentAge <= p.daXianAge[1]) {
@@ -622,7 +625,7 @@ export function generateChart(
   );
 
   // ── 农历信息（含节气四柱）──
-  const lunarInfo = getLunarInfo(year, month, day, hour, leapMode);
+  const lunarInfo = getLunarInfo(year, month, day, hour, leapMode, birthInfo.standardTime);
 
   // ★ 2026-08-14 文墨 2.5.8 实机：截空/副截阴干对调 + 年支大耗 + 旬空成对副旬
   applyWenmoJiekong(palaces, lunarInfo.yearStem);
