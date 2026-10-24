@@ -4,10 +4,25 @@ export interface BirthInfo {
   day: number;       // Gregorian day
   hour: number;      // 时辰 branch index (0=子, 1=丑, ... 11=亥)
   gender: 'male' | 'female';
+  /** Unknown time uses a provisional zi-hour preview; never treat it as a confirmed chart. */
+  unknownTime?: boolean;
   name?: string;
   province?: string;   // 出生省份
   city?: string;       // 出生城市
   longitude?: number;  // 出生地经度（用于真太阳时校正）
+  /**
+   * 已扣除用户选择的夏令时、但尚未做真太阳时及晚子换日的东八区标准时刻。
+   * 用于按真实瞬间判断太阳交节；旧的仅时辰记录没有此值，仍按时辰中点估算。
+   */
+  standardTime?: {
+    year: number;
+    month: number;
+    day: number;
+    clockHour: number;
+    clockMinute: number;
+    utcOffsetMinutes: 480;
+    dstCorrectionMinutes: 0 | 60;
+  };
   /**
    * 原始输入（用户在表单里实际填的时间），已知出生时间时始终保留。
    * 例：用户输入 5/9 23:55 → year/month/day 会被改成 5/10（次日子时），
@@ -32,6 +47,8 @@ export interface LunarInfo {
   isLeapMonth: boolean;
   /** 节气四柱（年/月/日/时柱），如 ["壬午","壬子","壬戌","庚戌"] */
   fourPillars?: [string, string, string, string];
+  /** 节气年/月柱采用已知标准时刻，还是旧记录的时辰中点近似。 */
+  fourPillarsTimeSource?: 'standard-clock' | 'branch-midpoint';
   /** 非节气四柱（农历口径：正月初一换年 + 农历月，与紫微同历法）——节气交界日其月柱会与 fourPillars 不同 */
   fourPillarsLunar?: [string, string, string, string];
 }

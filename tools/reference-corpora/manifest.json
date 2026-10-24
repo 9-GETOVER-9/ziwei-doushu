@@ -1,0 +1,56 @@
+{
+  "importedAtUtc": "2026-10-17T07:34:12.2278381Z",
+  "sources": [
+    {
+      "license": "CC BY-NC-SA 4.0",
+      "id": "tianji",
+      "repository": "https://github.com/Renhuai123/nihai-tianji-corpus",
+      "records": 4886,
+      "commit": "462faa4c70af40b8b87ad82ffa82a5823a485e94",
+      "files": [
+        {
+          "bytes": 2939042,
+          "sha256": "f6c49b98084fab7a2d44482dc6fd8ce43b518a439dfcfeba3b2d480d582c8aae",
+          "name": "entries.jsonl"
+        },
+        {
+          "bytes": 11593,
+          "sha256": "710600f2587ba5a2d71a1379be8b962989ae61fedf0a25569fc648f4b315947b",
+          "name": "README.md"
+        },
+        {
+          "bytes": 436,
+          "sha256": "b42a9e9622c914ca7c2b82af9a4de2af63232fee8aff2e7effeaad9268263cb1",
+          "name": "LICENSE.md"
+        }
+      ],
+      "courses": 112
+    },
+    {
+      "license": "CC BY-NC-SA 4.0",
+      "id": "renji",
+      "repository": "https://github.com/Renhuai123/nihai-renji-corpus",
+      "records": 19294,
+      "commit": "fdafae1ea685756a92a59179fdfa2e6a01379100",
+      "files": [
+        {
+          "bytes": 5789179,
+          "sha256": "adb6fb46418c53e6d465b4e8ea5ef2696340f131feaf8e054697b612e20c044b",
+          "name": "entries.jsonl"
+        },
+        {
+          "bytes": 9128,
+          "sha256": "9e408216b3706d3f340c4a823321049c1740b1bdcc7251c712e51dd9f7b5bd23",
+          "name": "README.md"
+        },
+        {
+          "bytes": 436,
+          "sha256": "b42a9e9622c914ca7c2b82af9a4de2af63232fee8aff2e7effeaad9268263cb1",
+          "name": "LICENSE.md"
+        }
+      ],
+      "courses": 117
+    }
+  ],
+  "purpose": "Noncommercial study and source mirror under upstream CC BY-NC-SA 4.0; retain original attribution and rights notices; no commercial-use authorization claimed"
+}

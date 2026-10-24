@@ -1,5 +1,6 @@
 import type { BirthFormState } from '@/components/BirthForm';
 import type { BirthInfo } from './types';
+import { normalizeBirthInput } from '../input-normalize';
 
 /** 根据北京时间 + 经度计算真太阳时时辰支 (0-11) */
 export function calcTrueSolarBranch(clockHour: number, clockMinute: number, longitude: number): number {
@@ -18,33 +19,7 @@ export function calcTrueSolarBranch(clockHour: number, clockMinute: number, long
  * 这与「时辰支同为子(0)」并不冲突——子时分早晚两段，需要在日期上区分。
  */
 export function formToBirthInfo(form: BirthFormState): BirthInfo {
-  let y = parseInt(form.year) || 0;
-  let m = parseInt(form.month) || 0;
-  let d = parseInt(form.day) || 0;
-
-  // 晚子时（23:00-23:59）按次日处理：用 Date 对象自动处理月末/年末进位
-  if (!form.unknownTime) {
-    const clockHour = parseInt(form.clockHour) || 0;
-    if (clockHour === 23 && y > 0 && m > 0 && d > 0) {
-      const next = new Date(y, m - 1, d + 1);
-      y = next.getFullYear();
-      m = next.getMonth() + 1;
-      d = next.getDate();
-    }
-  }
-
-  const hour = form.unknownTime
-    ? 0
-    : calcTrueSolarBranch(parseInt(form.clockHour) || 0, parseInt(form.clockMinute) || 0, form.longitude);
-  return {
-    year: y, month: m, day: d,
-    hour,
-    gender: form.gender,
-    name: form.name || undefined,
-    province: form.province || undefined,
-    city: form.city || undefined,
-    longitude: form.province ? form.longitude : undefined,
-  };
+  return normalizeBirthInput(form).birthInfo;
 }
 
 /** BirthFormState → URLSearchParams（用于分享链接） */
@@ -62,7 +37,11 @@ export function formToSearchParams(form: BirthFormState): URLSearchParams {
   }
   if (form.province) p.set('p', form.province);
   if (form.city) p.set('c', form.city);
-  if (form.longitude && form.longitude !== 120) p.set('lo', String(form.longitude));
+  if (Number.isFinite(form.longitude) && form.longitude !== 120) p.set('lo', String(form.longitude));
+  if (form.calendar === 'lunar') p.set('cal', 'lunar');
+  if (form.isLeapMonth) p.set('leap', '1');
+  if (form.useTrueSolarTime === false) p.set('solar', '0');
+  if (form.dstCorrection) p.set('dst', '1');
   p.set('g', form.gender === 'male' ? 'm' : 'f');
   return p;
 }
@@ -83,7 +62,11 @@ export function searchParamsToForm(params: URLSearchParams): Partial<BirthFormSt
     clockMinute: params.get('mi') || '0',
     province: params.get('p') || '',
     city: params.get('c') || '',
-    longitude: parseFloat(params.get('lo') || '120'),
+    longitude: params.has('lo') ? Number(params.get('lo')) : 120,
     gender: params.get('g') === 'f' ? 'female' : 'male',
+    calendar: params.get('cal') === 'lunar' ? 'lunar' : 'solar',
+    isLeapMonth: params.get('leap') === '1',
+    useTrueSolarTime: params.get('solar') !== '0',
+    dstCorrection: params.get('dst') === '1',
   };
 }

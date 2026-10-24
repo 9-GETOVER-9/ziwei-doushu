@@ -15,7 +15,8 @@
  *  - 倪师《天纪》紫微斗数讲义
  */
 
-import 'server-only';
+// Public, deterministic pattern rules. This module is shared by browser charts
+// and server-side analysis; it contains no server resources or private data.
 import type { ZiweiChart, Palace, Star } from './types';
 
 // ────────────────── 类型 ──────────────────
